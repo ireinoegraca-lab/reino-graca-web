@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#080808">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Reino & Graça — Portal do Membro</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080808;--bg2:#0f0f0f;--card:#161616;--line:#2c2424;--txt:#f5f0f0;--muted:#9b9296;--brand:#e11d2a;--brand2:#ff4d4d;--green:#22c55e}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+
+/* GATE */
+#gate{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.gate-box{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:36px 28px;width:100%;max-width:340px;text-align:center}
+.gate-logo{width:72px;height:72px;border-radius:50%;object-fit:cover;margin:0 auto 14px;display:block;box-shadow:0 0 0 3px rgba(225,29,42,.4)}
+.gate-title{font-family:'Cinzel',serif;font-size:1.3rem;font-weight:700;margin-bottom:4px}
+.gate-title span{color:var(--brand2)}
+.gate-sub{font-size:.8rem;color:var(--muted);margin-bottom:24px}
+.gate-input{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:13px 16px;color:var(--txt);font-size:.95rem;text-align:center;letter-spacing:3px;outline:none;margin-bottom:10px;transition:border-color .2s;font-weight:700;font-size:1.1rem}
+.gate-input:focus{border-color:var(--brand)}
+.gate-btn{width:100%;background:var(--brand);color:#fff;border:none;border-radius:12px;padding:14px;font-size:.95rem;font-weight:700;cursor:pointer}
+.gate-err{color:var(--brand2);font-size:.8rem;margin-top:8px;min-height:18px}
+
+/* APP */
+#app{display:none;flex-direction:column;min-height:100vh}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+.topbar-logo{width:30px;height:30px;border-radius:50%;object-fit:cover}
+.topbar-title{font-family:'Cinzel',serif;font-size:.85rem;font-weight:700;flex:1}
+.topbar-title span{color:var(--brand2)}
+.topbar-portal{font-size:.72rem;background:rgba(225,29,42,.15);color:var(--brand2);padding:3px 10px;border-radius:8px;font-weight:600}
+
+/* TABS */
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--line);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:12px 14px;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:.2s;white-space:nowrap}
+.tab.active{color:var(--brand2);border-bottom-color:var(--brand2)}
+
+/* CONTENT */
+.main{padding:16px;padding-bottom:24px}
+.page{display:none}.page.active{display:block}
+
+/* MURAL */
+.mural-card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px}
+.mural-img{width:100%;max-height:300px;object-fit:cover;display:block;cursor:zoom-in}
+.mural-body{padding:14px 16px}
+.mural-titulo{font-weight:700;font-size:.95rem;margin-bottom:6px}
+.mural-texto{font-size:.83rem;color:var(--muted);line-height:1.6;white-space:pre-wrap;margin-bottom:10px}
+.mural-meta{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--muted);flex-wrap:wrap}
+.mural-min{background:rgba(225,29,42,.1);color:var(--brand2);padding:2px 8px;border-radius:6px;font-weight:600}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+.lightbox img{max-width:95vw;max-height:95vh;border-radius:10px;object-fit:contain}
+
+/* AGENDA */
+.ev-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin-bottom:8px;display:flex;gap:14px}
+.ev-date{text-align:center;min-width:38px;flex-shrink:0}
+.ev-dia{font-size:1.4rem;font-weight:800;line-height:1;color:var(--brand2)}
+.ev-mes{font-size:.58rem;color:var(--muted);text-transform:uppercase;font-weight:700}
+.ev-titulo{font-weight:700;font-size:.88rem}
+.ev-sub{font-size:.76rem;color:var(--muted);margin-top:3px}
+.tipo-badge{font-size:.65rem;padding:2px 7px;border-radius:6px;font-weight:600}
+.tipo-culto{background:rgba(225,29,42,.15);color:var(--brand2)}
+.tipo-evento{background:rgba(96,165,250,.15);color:#60a5fa}
+.tipo-reuniao{background:rgba(245,158,11,.15);color:#f59e0b}
+
+/* ANIVERSARIANTES */
+.aniv-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.aniv-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#e11d2a,#ff6b6b);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex-shrink:0}
+.aniv-nome{font-weight:700;font-size:.9rem}
+.aniv-data{font-size:.75rem;color:var(--muted);margin-top:2px}
+.aniv-badge{margin-left:auto;font-size:1.4rem}
+
+/* LOUVOR */
+.pin-gate{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;text-align:center;margin-top:20px}
+.musica-card{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden}
+.musica-head{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer}
+.musica-icon{width:34px;height:34px;border-radius:8px;background:rgba(225,29,42,.12);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.musica-body{display:none;border-top:1px solid var(--line);padding:14px 16px}
+.musica-card.open .musica-body{display:block}
+.cifra-box{font-family:monospace;font-size:.82rem;line-height:1.9;white-space:pre-wrap;color:#d4d0ce;overflow-x:auto}
+.acorde{color:var(--brand2);font-weight:700}
+.ton-ctrl{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.ton-btn{background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:4px 10px;border-radius:8px;font-size:.78rem;cursor:pointer;font-weight:600}
+.ton-label{font-size:.9rem;font-weight:700;color:var(--brand2);min-width:28px;text-align:center}
+
+/* PUSH */
+.push-banner{background:rgba(225,29,42,.08);border:1px solid rgba(225,29,42,.2);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:.82rem}
+.push-banner button{background:var(--brand);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:auto}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 16px;color:var(--muted)}
+.empty-icon{font-size:2.5rem;margin-bottom:10px}
+
+/* GUIA */
+.guia-section{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.guia-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;font-weight:700;font-size:.9rem}
+.guia-body{display:none;padding:0 16px 16px;font-size:.83rem;color:var(--muted);line-height:1.7}
+.guia-section.open .guia-body{display:block}
+
+/* NOTIF CHIP */
+.notif-ok{display:none;font-size:.75rem;color:var(--green);font-weight:600;margin-bottom:14px;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- GATE -->
+<div id="gate">
+  <div class="gate-box">
+    <img class="gate-logo" src="/static/logo.jpeg" onerror="this.style.display='none'">
+    <div class="gate-title">Reino &amp; <span>Graça</span></div>
+    <div class="gate-sub">Portal do Membro — Insira o código de acesso</div>
+    <input class="gate-input" id="gate-input" type="text" placeholder="••••••••" autocomplete="off"
+      onkeydown="if(event.key==='Enter')verificarAcesso()">
+    <button class="gate-btn" onclick="verificarAcesso()">Entrar</button>
+    <div class="gate-err" id="gate-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <img class="topbar-logo" src="/static/logo.jpeg" onerror="this.style.display='none'">
+    <div class="topbar-title">Reino &amp; <span>Graça</span></div>
+    <div class="topbar-portal">Membros</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="navTab('mural',this)">📌 Mural</div>
+    <div class="tab" onclick="navTab('agenda',this)">📅 Agenda</div>
+    <div class="tab" onclick="navTab('aniversarios',this)">🎂 Aniversários</div>
+    <div class="tab" onclick="navTab('louvor',this)">🎸 Louvor</div>
+    <div class="tab" onclick="navTab('guia',this)">📖 Guia</div>
+  </div>
+
+  <div class="main">
+
+    <!-- MURAL -->
+    <div class="page active" id="page-mural">
+      <div id="push-banner" class="push-banner" style="display:none">
+        🔔 Ative notificações para receber avisos
+        <button onclick="ativarNotificacoes()">Ativar</button>
+      </div>
+      <div class="notif-ok" id="notif-ok">✅ Notificações ativadas!</div>
+      <div id="mural-list"></div>
+    </div>
+
+    <!-- AGENDA -->
+    <div class="page" id="page-agenda">
+      <div id="agenda-list"></div>
+    </div>
+
+    <!-- ANIVERSÁRIOS -->
+    <div class="page" id="page-aniversarios">
+      <div id="aniv-list"></div>
+    </div>
+
+    <!-- LOUVOR -->
+    <div class="page" id="page-louvor">
+      <div id="pin-area">
+        <div class="pin-gate">
+          <div style="font-size:2rem;margin-bottom:12px">🔒</div>
+          <div style="font-weight:700;margin-bottom:8px">Área Restrita</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Insira o PIN da equipe de louvor</div>
+          <input type="password" id="pin-input" placeholder="PIN" style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:11px;color:var(--txt);font-size:1.1rem;text-align:center;letter-spacing:3px;outline:none;margin-bottom:10px;border-color:var(--line)"
+            onkeydown="if(event.key==='Enter')verificarPin()">
+          <button onclick="verificarPin()" style="width:100%;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;cursor:pointer">Entrar</button>
+          <div id="pin-err" style="color:var(--brand2);font-size:.8rem;margin-top:8px;min-height:18px"></div>
+        </div>
+      </div>
+      <div id="louvor-content" style="display:none">
+        <div id="musicas-list"></div>
+      </div>
+    </div>
+
+    <!-- GUIA -->
+    <div class="page" id="page-guia">
+      <div id="guia-content"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── DADOS DO SERVIDOR ─────────────────────────────────────────────
+const DADOS = {{ dados|tojson }};
+
+// ── TONS ──────────────────────────────────────────────────────────
+const TONS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+let _semi={};
+
+function transpAcorde(a,n){const m=a.match(/^([A-G][#b]?)(.*)/);if(!m)return a;const en={'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#'};const b=en[m[1]]||m[1];const i=TONS.indexOf(b);if(i<0)return a;return TONS[((i+n)%12+12)%12]+m[2];}
+function transpCifra(txt,n){return txt.replace(/\[([^\]]+)\]/g,(_,a)=>'['+transpAcorde(a,n)+']');}
+function cifraHtml(txt){return txt.replace(/\[([^\]]+)\]/g,'<span class="acorde">$1</span>');}
+
+// ── UTILS ─────────────────────────────────────────────────────────
+function iniciais(n){return(n||'').split(' ').filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');}
+function fmtData(iso){if(!iso)return['—','—'];const[,m,d]=iso.split('-');const ms=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];return[d,ms[parseInt(m)-1]];}
+
+// ── GATE ─────────────────────────────────────────────────────────
+function verificarAcesso(){
+  const v=document.getElementById('gate-input').value.trim().toLowerCase();
+  const c=(DADOS.codigoAcesso||'reino2026').toLowerCase();
+  if(v===c){
+    sessionStorage.setItem('rg_acesso','1');
+    document.getElementById('gate').style.display='none';
+    document.getElementById('app').style.display='flex';
+    renderAll();
+    if(DADOS.onesignalAppId)setTimeout(mostrarBannerPush,3000);
+  } else {
+    document.getElementById('gate-err').textContent='Código incorreto. Tente novamente.';
+    document.getElementById('gate-input').value='';
+  }
+}
+
+// ── ONESIGNAL / PUSH ─────────────────────────────────────────────
+function mostrarBannerPush(){
+  if(localStorage.getItem('rg_push_ok'))return;
+  document.getElementById('push-banner').style.display='flex';
+}
+
+async function ativarNotificacoes(){
+  try{
+    if(!('serviceWorker' in navigator)||!('Notification' in window)){alert('Seu navegador não suporta notificações.');return;}
+    const p=await Notification.requestPermission();
+    if(p==='granted'){
+      document.getElementById('push-banner').style.display='none';
+      document.getElementById('notif-ok').style.display='block';
+      localStorage.setItem('rg_push_ok','1');
+    }
+  }catch(e){console.warn(e);}
+}
+
+// ── NAV ───────────────────────────────────────────────────────────
+function navTab(name,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── RENDER ALL ────────────────────────────────────────────────────
+function renderAll(){
+  renderMural();renderAgenda();renderAniversarios();renderGuia();
+}
+
+// ── MURAL ─────────────────────────────────────────────────────────
+function renderMural(){
+  const el=document.getElementById('mural-list');
+  if(!DADOS.mural||!DADOS.mural.length){el.innerHTML='<div class="empty"><div class="empty-icon">📌</div><p>Nenhum aviso no mural</p></div>';return;}
+  el.innerHTML=DADOS.mural.map((p,i)=>`<div class="mural-card">
+    ${p.imagem?`<img class="mural-img" src="${p.imagem}" onclick="lightbox(${i})" loading="lazy">`:''}
+    <div class="mural-body">
+      <div class="mural-titulo">${p.titulo}</div>
+      ${p.texto?`<div class="mural-texto">${p.texto}</div>`:''}
+      <div class="mural-meta">
+        <span class="mural-min">${p.ministerio||'Geral'}</span>
+        <span>${p.autor||''}</span>
+      </div>
+    </div>
+  </div>`).join('');
+}
+
+function lightbox(i){
+  const p=DADOS.mural[i];if(!p||!p.imagem)return;
+  const lb=document.createElement('div');lb.className='lightbox';
+  lb.innerHTML=`<img src="${p.imagem}">`;lb.onclick=()=>lb.remove();
+  document.body.appendChild(lb);
+}
+
+// ── AGENDA ────────────────────────────────────────────────────────
+function renderAgenda(){
+  const hoje=new Date().toISOString().split('T')[0];
+  const evs=[...(DADOS.eventos||[])].filter(e=>e.data>=hoje).sort((a,b)=>a.data.localeCompare(b.data));
+  const el=document.getElementById('agenda-list');
+  if(!evs.length){el.innerHTML='<div class="empty"><div class="empty-icon">📅</div><p>Nenhum evento próximo</p></div>';return;}
+  let html='',lastMes='';
+  evs.forEach(e=>{
+    const[dia,mes]=fmtData(e.data);
+    if(mes!==lastMes){html+=`<div style="font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">${mes}</div>`;lastMes=mes;}
+    html+=`<div class="ev-card">
+      <div class="ev-date"><div class="ev-dia">${dia}</div><div class="ev-mes">${mes}</div></div>
+      <div><div class="ev-titulo">${e.titulo}</div>
+      <div class="ev-sub">${e.hora?`🕐 ${e.hora} `:''} ${e.local?`📍 ${e.local}`:''}
+        <span class="tipo-badge tipo-${e.tipo||'culto'}">${e.tipo||'culto'}</span>
+      </div></div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+// ── ANIVERSÁRIOS ─────────────────────────────────────────────────
+function renderAniversarios(){
+  const hoje=new Date().toISOString().split('T')[0];const mes=hoje.slice(5,7);
+  const todos=(DADOS.membros||[]).filter(m=>m.nasc);
+  const deste=todos.filter(m=>m.nasc.slice(5,7)===mes).sort((a,b)=>a.nasc.slice(8).localeCompare(b.nasc.slice(8)));
+  const el=document.getElementById('aniv-list');
+  if(!deste.length){el.innerHTML='<div class="empty"><div class="empty-icon">🎂</div><p>Nenhum aniversariante este mês</p></div>';return;}
+  el.innerHTML=deste.map(m=>{const d=m.nasc.slice(8,10);const isHoje=m.nasc.slice(5)===hoje.slice(5);return`<div class="aniv-card" style="${isHoje?'border-color:var(--brand);background:rgba(225,29,42,.05)':''}">
+    <div class="aniv-av">${iniciais(m.nome)}</div>
+    <div><div class="aniv-nome">${m.nome}</div><div class="aniv-data">Dia ${d} ${isHoje?'— Hoje! 🎉':''}</div></div>
+    <div class="aniv-badge">${isHoje?'🎂':'🎈'}</div>
+  </div>`;}).join('');
+}
+
+// ── LOUVOR ────────────────────────────────────────────────────────
+function verificarPin(){
+  const v=document.getElementById('pin-input').value.trim();
+  const p=DADOS.pinLouvor||'louvor';
+  if(v===p){sessionStorage.setItem('rg_pin_ok','1');document.getElementById('pin-area').style.display='none';document.getElementById('louvor-content').style.display='';renderMusicas();}
+  else{document.getElementById('pin-err').textContent='PIN incorreto';document.getElementById('pin-input').value='';}
+}
+
+function renderMusicas(){
+  const list=DADOS.musicas||[];
+  const el=document.getElementById('musicas-list');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">🎵</div><p>Nenhuma música</p></div>';return;}
+  _semi={};
+  el.innerHTML=list.map((m,i)=>`<div class="musica-card" id="mc-${i}">
+    <div class="musica-head" onclick="toggleMus(${i})">
+      <div class="musica-icon">🎵</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.88rem">${m.titulo}</div><div style="font-size:.74rem;color:var(--muted)">${m.artista||'—'}</div></div>
+      <span id="tb-${i}" style="font-size:.75rem;font-weight:700;color:var(--brand2);background:rgba(225,29,42,.1);padding:2px 8px;border-radius:6px">${m.tom||'—'}</span>
+    </div>
+    <div class="musica-body">
+      ${m.cifra?`<div class="ton-ctrl"><span style="font-size:.8rem;color:var(--muted)">Tom:</span><button class="ton-btn" onclick="transporMus(${i},-1)">♭−</button><span class="ton-label" id="ton-${i}">${m.tom||'—'}</span><button class="ton-btn" onclick="transporMus(${i},+1)">♯+</button><button class="ton-btn" onclick="resetMus(${i})">↺</button></div><div class="cifra-box" id="cifra-${i}">${cifraHtml(m.cifra)}</div>`:'<div style="color:var(--muted);font-size:.85rem">Cifra não cadastrada</div>'}
+    </div>
+  </div>`).join('');
+}
+
+function toggleMus(i){document.getElementById('mc-'+i).classList.toggle('open');}
+function transporMus(i,n){_semi[i]=(_semi[i]||0)+n;const m=DADOS.musicas[i];const t=transpAcorde(m.tom||'C',_semi[i]);document.getElementById('ton-'+i).textContent=t;document.getElementById('tb-'+i).textContent=t;if(m.cifra)document.getElementById('cifra-'+i).innerHTML=cifraHtml(transpCifra(m.cifra,_semi[i]));}
+function resetMus(i){_semi[i]=0;const m=DADOS.musicas[i];document.getElementById('ton-'+i).textContent=m.tom||'—';document.getElementById('tb-'+i).textContent=m.tom||'—';if(m.cifra)document.getElementById('cifra-'+i).innerHTML=cifraHtml(m.cifra);}
+
+// ── GUIA ─────────────────────────────────────────────────────────
+function renderGuia(){
+  const g=DADOS.guia||[];
+  const el=document.getElementById('guia-content');
+  if(!g.length){el.innerHTML='<div class="empty"><div class="empty-icon">📖</div><p>Guia não configurado</p></div>';return;}
+  el.innerHTML=g.map((s,i)=>`<div class="guia-section" id="gs-${i}">
+    <div class="guia-head" onclick="toggleGuia(${i})">${s.titulo}<span>›</span></div>
+    <div class="guia-body">${s.conteudo}</div>
+  </div>`).join('');
+}
+
+function toggleGuia(i){document.getElementById('gs-'+i).classList.toggle('open');}
+
+// ── INIT ─────────────────────────────────────────────────────────
+if(sessionStorage.getItem('rg_acesso')==='1'){
+  document.getElementById('gate').style.display='none';
+  document.getElementById('app').style.display='flex';
+  renderAll();
+  if(DADOS.onesignalAppId&&!localStorage.getItem('rg_push_ok'))setTimeout(mostrarBannerPush,3000);
+}
+
+if(sessionStorage.getItem('rg_pin_ok')==='1'){
+  document.getElementById('pin-area').style.display='none';
+  document.getElementById('louvor-content').style.display='';
+}
+</script>
+</body>
+</html>

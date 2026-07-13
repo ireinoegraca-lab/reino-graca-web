@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#080808">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Reino & Graça — Sistema</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080808;--bg2:#0f0f0f;--card:#161616;--line:#2c2424;--txt:#f5f0f0;--muted:#9b9296;--brand:#e11d2a;--brand2:#ff4d4d;--green:#22c55e;--yellow:#f59e0b;--blue:#60a5fa;--purple:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
+input,select,textarea,button{font-family:inherit}
+
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:36px 28px;width:100%;max-width:360px;text-align:center}
+.login-logo{width:72px;height:72px;border-radius:50%;object-fit:cover;margin:0 auto 14px;display:block;box-shadow:0 0 0 3px rgba(225,29,42,.4)}
+.login-title{font-family:'Cinzel',serif;font-size:1.4rem;font-weight:700;margin-bottom:4px}
+.login-title span{color:var(--brand2)}
+.login-sub{font-size:.82rem;color:var(--muted);margin-bottom:28px}
+.login-input{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:13px 16px;color:var(--txt);font-size:.95rem;outline:none;margin-bottom:10px;transition:border-color .2s}
+.login-input:focus{border-color:var(--brand)}
+.login-btn{width:100%;background:var(--brand);color:#fff;border:none;border-radius:12px;padding:14px;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s}
+.login-btn:hover{opacity:.88}
+.login-err{color:var(--brand2);font-size:.8rem;margin-top:8px;min-height:18px}
+
+/* ── LAYOUT ── */
+#app{display:none;flex-direction:column;min-height:100vh}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+.topbar-logo{width:30px;height:30px;border-radius:50%;object-fit:cover}
+.topbar-title{font-family:'Cinzel',serif;font-size:.85rem;font-weight:700;flex:1}
+.topbar-title span{color:var(--brand2)}
+.topbar-user{font-size:.75rem;color:var(--muted);text-align:right}
+.topbar-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#e11d2a,#ff6b6b);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;cursor:pointer;flex-shrink:0}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--line);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;cursor:pointer;color:var(--muted);font-size:.62rem;font-weight:600;transition:.2s;min-width:0}
+.nav-item.active{color:var(--brand2)}
+.nav-item .ni{font-size:1.2rem}
+.nav-more{display:none;position:fixed;bottom:60px;right:0;left:0;background:var(--bg2);border-top:1px solid var(--line);padding:8px 0;z-index:99}
+.nav-more.open{display:block}
+.nav-more-item{display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;font-size:.9rem;color:var(--muted)}
+.nav-more-item:hover,.nav-more-item.active{color:var(--txt);background:var(--card)}
+.nav-more-item .ni{font-size:1.1rem;width:24px}
+
+/* ── PAGES ── */
+.main{flex:1;padding:16px;padding-bottom:80px}
+.page{display:none}.page.active{display:block}
+.page-header{margin-bottom:20px}
+.page-title{font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700}
+.page-sub{font-size:.78rem;color:var(--muted);margin-top:3px}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+.card-title{font-weight:700;font-size:.9rem;margin-bottom:10px}
+.stat-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.stat-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+.stat-val{font-size:1.8rem;font-weight:800;color:var(--brand2)}
+.stat-lbl{font-size:.72rem;color:var(--muted);margin-top:2px}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.search-box{flex:1;min-width:160px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--txt);font-size:.85rem;outline:none}
+.search-box:focus{border-color:var(--brand)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:10px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;transition:.2s;white-space:nowrap}
+.btn-primary{background:var(--brand);color:#fff}.btn-primary:hover{opacity:.88}
+.btn-outline{background:transparent;border:1px solid var(--line);color:var(--txt)}.btn-outline:hover{border-color:var(--brand);color:var(--brand2)}
+.btn-ghost{background:transparent;color:var(--muted);padding:6px 10px}.btn-ghost:hover{color:var(--txt)}
+.btn-sm{padding:6px 12px;font-size:.78rem}
+.btn-danger{background:rgba(225,29,42,.15);color:var(--brand2);border:1px solid rgba(225,29,42,.3)}
+
+/* ── LISTS ── */
+.list-item{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.list-item:last-child{border-bottom:none}
+.list-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#e11d2a,#ff6b6b);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}
+.list-info{flex:1;min-width:0}
+.list-nome{font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-sub{font-size:.74rem;color:var(--muted);margin-top:2px}
+.list-actions{display:flex;gap:4px;flex-shrink:0}
+.badge{font-size:.68rem;padding:2px 8px;border-radius:6px;font-weight:600}
+.badge-ativo{background:rgba(34,197,94,.15);color:#22c55e}
+.badge-lider{background:rgba(225,29,42,.15);color:var(--brand2)}
+.badge-visitante{background:rgba(155,146,150,.15);color:var(--muted)}
+.badge-inativo{background:rgba(100,100,100,.15);color:#666}
+.badge-admin{background:rgba(225,29,42,.2);color:var(--brand2)}
+.badge-ministerio{background:rgba(96,165,250,.15);color:var(--blue)}
+
+/* ── FORMS ── */
+.form-group{margin-bottom:14px}
+.form-label{font-size:.78rem;font-weight:600;color:var(--muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.form-input{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:11px 14px;color:var(--txt);font-size:.9rem;outline:none;transition:border-color .2s}
+.form-input:focus{border-color:var(--brand)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:none;align-items:flex-end;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--line);border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:90vh;overflow-y:auto}
+@media(min-width:600px){.modal-overlay{align-items:center}.modal{border-radius:20px}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg2);z-index:1}
+.modal-title{font-weight:700;font-size:.95rem}
+.modal-body{padding:20px}
+
+/* ── MURAL ── */
+.mural-card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px}
+.mural-img{width:100%;max-height:260px;object-fit:cover;display:block;cursor:zoom-in}
+.mural-body{padding:14px 16px}
+.mural-titulo{font-weight:700;font-size:.95rem;margin-bottom:6px}
+.mural-texto{font-size:.83rem;color:var(--muted);line-height:1.6;white-space:pre-wrap;margin-bottom:10px}
+.mural-meta{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--muted);flex-wrap:wrap}
+.mural-min{background:rgba(225,29,42,.1);color:var(--brand2);padding:2px 8px;border-radius:6px;font-weight:600}
+.mural-actions{margin-left:auto;display:flex;gap:4px}
+.upload-area{border:2px dashed var(--line);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:.2s}
+.upload-area:hover{border-color:var(--brand)}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+.lightbox img{max-width:95vw;max-height:95vh;border-radius:10px;object-fit:contain}
+
+/* ── FIN ── */
+.fin-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.fin-row:last-child{border-bottom:none}
+.fin-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.fin-entrada{background:#22c55e}.fin-saida{background:var(--brand2)}
+.fin-info{flex:1;min-width:0}
+.fin-desc{font-size:.85rem;font-weight:600}
+.fin-cat{font-size:.74rem;color:var(--muted)}
+.fin-val{font-weight:700;font-size:.9rem}
+.fin-pos{color:#22c55e}.fin-neg{color:var(--brand2)}
+
+/* ── LOUVOR ── */
+.musica-card{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden}
+.musica-head{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer}
+.musica-icon{width:34px;height:34px;border-radius:8px;background:rgba(225,29,42,.12);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.musica-body{display:none;border-top:1px solid var(--line);padding:14px 16px}
+.musica-card.open .musica-body{display:block}
+.cifra-box{font-family:monospace;font-size:.82rem;line-height:1.9;white-space:pre-wrap;color:#d4d0ce;overflow-x:auto}
+.cifra-box .acorde{color:var(--brand2);font-weight:700}
+.ton-ctrl{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.ton-btn{background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:4px 10px;border-radius:8px;font-size:.78rem;cursor:pointer;font-weight:600}
+.ton-label{font-size:.9rem;font-weight:700;color:var(--brand2);min-width:28px;text-align:center}
+
+/* ── EV CARD ── */
+.ev-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin-bottom:8px;display:flex;gap:14px;align-items:flex-start}
+.ev-date{text-align:center;min-width:40px;flex-shrink:0}
+.ev-dia{font-size:1.4rem;font-weight:800;line-height:1;color:var(--brand2)}
+.ev-mes{font-size:.6rem;color:var(--muted);text-transform:uppercase;font-weight:700}
+.ev-titulo{font-weight:700;font-size:.88rem}
+.ev-sub{font-size:.76rem;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+.tipo-badge{font-size:.66rem;padding:2px 7px;border-radius:6px;font-weight:600}
+.tipo-culto{background:rgba(225,29,42,.15);color:var(--brand2)}
+.tipo-evento{background:rgba(96,165,250,.15);color:var(--blue)}
+.tipo-reuniao{background:rgba(245,158,11,.15);color:var(--yellow)}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:40px 16px;color:var(--muted)}
+.empty-icon{font-size:2.5rem;margin-bottom:10px}
+
+/* ── TOAST ── */
+.toast-wrap{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:90%;max-width:360px}
+.toast{padding:12px 16px;border-radius:12px;font-size:.85rem;font-weight:600;text-align:center;animation:slideUp .3s ease}
+.toast-success{background:#22c55e;color:#fff}
+.toast-error{background:var(--brand);color:#fff}
+.toast-info{background:#3b82f6;color:#fff}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── DETALHE MINISTÉRIO ── */
+#detalhe-ministerio{display:none}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <img class="login-logo" src="/static/logo.jpeg" onerror="this.style.display='none'">
+    <div class="login-title">Reino &amp; <span>Graça</span></div>
+    <div class="login-sub">Sistema de Gestão da Igreja</div>
+    <input class="login-input" id="l-user" type="text" placeholder="Usuário" autocomplete="username"
+      onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()">
+    <input class="login-input" id="l-pass" type="password" placeholder="Senha" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-err" id="l-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <img class="topbar-logo" src="/static/logo.jpeg" onerror="this.style.display='none'">
+    <div class="topbar-title">Reino &amp; <span>Graça</span></div>
+    <div class="topbar-user" id="tb-user"></div>
+    <div class="topbar-avatar" id="tb-avatar" onclick="doLogout()"></div>
+  </div>
+
+  <!-- CONTEÚDO -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Visão geral da Igreja</div>
+      </div>
+      <div class="stat-row" id="dash-stats"></div>
+      <div class="card">
+        <div class="card-title">🎂 Aniversariantes do mês</div>
+        <div id="dash-aniv"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📅 Próximos eventos</div>
+        <div id="dash-eventos"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📌 Mural recente</div>
+        <div id="dash-mural"></div>
+      </div>
+    </div>
+
+    <!-- MEMBROS -->
+    <div class="page" id="page-membros">
+      <div class="page-header">
+        <div class="page-title">Membros</div>
+        <div class="page-sub">Gestão de membros e visitantes</div>
+      </div>
+      <div class="toolbar">
+        <input class="search-box" id="membros-search" placeholder="🔍 Buscar membro..." oninput="renderMembros()">
+        <button class="btn btn-primary" id="btn-novo-membro" onclick="openModalMembro()">+ Novo</button>
+      </div>
+      <div id="membros-list"></div>
+    </div>
+
+    <!-- MINISTÉRIOS -->
+    <div class="page" id="page-ministerios">
+      <div id="lista-ministerios">
+        <div class="page-header">
+          <div class="page-title">Ministérios</div>
+          <div class="page-sub">Grupos e líderes da Igreja</div>
+        </div>
+        <div class="toolbar">
+          <button class="btn btn-primary" id="btn-novo-min" onclick="openModalMinisterio()">+ Novo</button>
+        </div>
+        <div id="ministerios-list"></div>
+      </div>
+      <div id="detalhe-ministerio">
+        <div class="toolbar" style="margin-bottom:16px">
+          <button class="btn btn-ghost" onclick="fecharDetalhe()">← Voltar</button>
+          <button class="btn btn-outline btn-sm" id="btn-add-membro-min" onclick="openModalAddMembro()">+ Membro</button>
+        </div>
+        <div id="detalhe-content"></div>
+      </div>
+    </div>
+
+    <!-- AGENDA -->
+    <div class="page" id="page-agenda">
+      <div class="page-header">
+        <div class="page-title">Agenda</div>
+        <div class="page-sub">Cultos, eventos e programação</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-primary" id="btn-novo-ev" onclick="openModalEvento()">+ Evento</button>
+      </div>
+      <div id="agenda-list"></div>
+    </div>
+
+    <!-- LOUVOR -->
+    <div class="page" id="page-louvor">
+      <div class="page-header">
+        <div class="page-title">Louvor</div>
+        <div class="page-sub">Repertório, cifras e setlists</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="btn btn-sm" id="tab-rep" onclick="louvorTab('rep')" style="background:var(--brand);color:#fff">🎵 Repertório</button>
+        <button class="btn btn-sm btn-outline" id="tab-set" onclick="louvorTab('set')">📋 Setlists</button>
+      </div>
+      <div id="louvor-rep-panel">
+        <div class="toolbar">
+          <input class="search-box" id="musicas-search" placeholder="🔍 Buscar música..." oninput="renderMusicas()">
+          <button class="btn btn-primary" onclick="openModalMusica()">+ Música</button>
+        </div>
+        <div id="musicas-list"></div>
+      </div>
+      <div id="louvor-set-panel" style="display:none">
+        <div class="toolbar">
+          <button class="btn btn-primary" onclick="openModalSetlist()">+ Setlist</button>
+        </div>
+        <div id="setlists-list"></div>
+      </div>
+    </div>
+
+    <!-- MURAL -->
+    <div class="page" id="page-mural">
+      <div class="page-header">
+        <div class="page-title">Mural</div>
+        <div class="page-sub">Avisos, cartazes e fotos</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-outline btn-sm" onclick="notificarMembros()">🔔 Notificar</button>
+        <button class="btn btn-primary" onclick="openModalPost()">+ Post</button>
+      </div>
+      <div id="mural-list"></div>
+    </div>
+
+    <!-- FINANCEIRO -->
+    <div class="page" id="page-financeiro">
+      <div class="page-header">
+        <div class="page-title">Financeiro</div>
+        <div class="page-sub">Dízimos, ofertas e despesas</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-primary" onclick="openModalFin()">+ Lançamento</button>
+      </div>
+      <div class="card" id="fin-resumo"></div>
+      <div id="fin-list"></div>
+    </div>
+
+    <!-- USUÁRIOS -->
+    <div class="page" id="page-usuarios">
+      <div class="page-header">
+        <div class="page-title">Usuários</div>
+        <div class="page-sub">Contas de acesso e permissões</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-primary" onclick="openModalUsuario()">+ Usuário</button>
+      </div>
+      <div id="usuarios-list"></div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav" id="bottom-nav">
+    <div class="nav-item active" onclick="navTo('dashboard')" data-page="dashboard">
+      <span class="ni">🏠</span><span>Início</span>
+    </div>
+    <div class="nav-item" onclick="navTo('membros')" data-page="membros">
+      <span class="ni">👥</span><span>Membros</span>
+    </div>
+    <div class="nav-item" onclick="navTo('mural')" data-page="mural">
+      <span class="ni">📌</span><span>Mural</span>
+    </div>
+    <div class="nav-item" onclick="navTo('louvor')" data-page="louvor">
+      <span class="ni">🎸</span><span>Louvor</span>
+    </div>
+    <div class="nav-item" onclick="toggleMore()">
+      <span class="ni">⋯</span><span>Mais</span>
+    </div>
+  </div>
+
+  <!-- MENU MAIS -->
+  <div class="nav-more" id="nav-more" onclick="toggleMore()">
+    <div class="nav-more-item" onclick="navTo('ministerios')"><span class="ni">🎺</span> Ministérios</div>
+    <div class="nav-more-item" onclick="navTo('agenda')"><span class="ni">📅</span> Agenda</div>
+    <div class="nav-more-item admin-only" onclick="navTo('financeiro')"><span class="ni">💰</span> Financeiro</div>
+    <div class="nav-more-item admin-only" onclick="navTo('usuarios')"><span class="ni">🔑</span> Usuários</div>
+    <div class="nav-more-item" onclick="doLogout()"><span class="ni">🚪</span> Sair</div>
+  </div>
+</div><!-- /app -->
+
+<!-- MODAIS -->
+<!-- Membro -->
+<div class="modal-overlay" id="modal-membro" onclick="if(event.target===this)closeModal('modal-membro')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-membro-title">Novo Membro</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-membro')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="m-id">
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Nome *</label>
+          <input class="form-input" id="m-nome" placeholder="Nome completo">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nascimento</label>
+          <input class="form-input" id="m-nasc" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-input" id="m-status">
+            <option value="Ativo">Ativo</option>
+            <option value="Visitante">Visitante</option>
+            <option value="Líder">Líder</option>
+            <option value="Inativo">Inativo</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Telefone</label>
+          <input class="form-input" id="m-tel" placeholder="(27) 99999-9999">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="m-email" type="email" placeholder="email@...">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Profissão</label>
+          <input class="form-input" id="m-prof" placeholder="Profissão">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bairro</label>
+          <input class="form-input" id="m-bairro" placeholder="Bairro">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observações</label>
+        <textarea class="form-input" id="m-obs" rows="2" placeholder="Observações..."></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal('modal-membro')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarMembro()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ministério -->
+<div class="modal-overlay" id="modal-ministerio" onclick="if(event.target===this)closeModal('modal-ministerio')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-min-title">Novo Ministério</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-ministerio')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="min-id">
+      <div class="form-group">
+        <label class="form-label">Nome *</label>
+        <input class="form-input" id="min-nome" placeholder="Nome do ministério">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição</label>
+        <textarea class="form-input" id="min-desc" rows="2" placeholder="Descrição..."></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal('modal-ministerio')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarMinisterio()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add membro ao ministério -->
+<div class="modal-overlay" id="modal-add-membro-min" onclick="if(event.target===this)closeModal('modal-add-membro-min')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Adicionar Membro</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-add-membro-min')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Membro</label>
+        <select class="form-input" id="add-membro-sel"></select>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal('modal-add-membro-min')">Cancelar</button>
+        <button class="btn btn-primary" onclick="confirmarAddMembro()">Adicionar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Evento -->
+<div class="modal-overlay" id="modal-evento" onclick="if(event.target===this)closeModal('modal-evento')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-ev-title">Novo Evento</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-evento')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ev-id">
+      <div class="form-group">
+        <label class="form-label">Título *</label>
+        <input class="form-input" id="ev-titulo" placeholder="Título do evento">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Data *</label>
+          <input class="form-input" id="ev-data" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hora</label>
+          <input class="form-input" id="ev-hora" type="time">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Local</label>
+          <input class="form-input" id="ev-local" placeholder="Local">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-input" id="ev-tipo">
+            <option value="culto">Culto</option>
+            <option value="evento">Evento</option>
+            <option value="reuniao">Reunião</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal('modal-evento')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarEvento()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Música -->
+<div class="modal-overlay" id="modal-musica" onclick="if(event.target===this)closeModal('modal-musica')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-mus-title">Nova Música</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-musica')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="mus-id">
+      <div class="form-group">
+        <label class="form-label">Título *</label>
+        <input class="form-input" id="mus-titulo" placeholder="Nome da música">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Artista</label>
+          <input class="form-input" id="mus-artista" placeholder="Artista/Banda">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tom</label>
+          <select class="form-input" id="mus-tom">
+            <option value="">—</option>
+            <option>C</option><option>C#</option><option>D</option><option>D#</option>
+            <option>E</option><option>F</option><option>F#</option><option>G</option>
+            <option>G#</option><option>A</option><option>A#</option><option>B</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cifra <span style="color:var(--muted);font-size:.75rem">(use [G] para acordes)</span></label>
+        <textarea class="form-input" id="mus-cifra" rows="6" placeholder="[G]Primeira linha...&#10;[Em]Segunda linha..."></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal('modal-musica')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarMusica()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Post Mural -->
+<div class="modal-overlay" id="modal-post" onclick="if(event.target===this)closeModal('modal-post')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-post-title">Novo Post</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-post')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="post-id">
+      <div class="form-group">
+        <label class="form-label">Título *</label>
+        <input class="form-input" id="post-titulo" placeholder="Título do aviso">
+      </div>
+      <div class="form-group" id="post-min-group">
+        <label class="form-label">Ministério</label>
+        <select class="form-input" id="post-ministerio">
+          <option value="">📢 Geral (toda a Igreja)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Texto <span style="color:var(--muted);font-size:.75rem">(opcional)</span></label>
+        <textarea class="form-input" id="post-texto" rows="3" placeholder="Texto do aviso..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Imagem <span style="color:var(--muted);font-size:.75rem">(opcional)</span></label>
+        <div class="upload-area" id="post-upload" onclick="document.getElementById('post-img-input').click()">
+          <div id="post-img-preview" style="display:none">
+            <img id="post-img-thumb" style="max-width:100%;max-height:200px;border-radius:8px;object-fit:contain">
+            <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="event.stopPropagation();removerImg()">✕ Remover</button>
+          </div>
+          <div id="post-upload-ph">🖼️<br><small style="color:var(--muted)">Clique para adicionar imagem</small></div>
+        </div>
+        <input type="file" id="post-img-input" accept="image/*" style="display:none" onchange="onImgChange(event)">
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal('modal-post')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarPost()">Publicar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Financeiro -->
+<div class="modal-overlay" id="modal-fin" onclick="if(event.target===this)closeModal('modal-fin')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Novo Lançamento</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-fin')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tipo *</label>
+          <select class="form-input" id="fin-tipo">
+            <option value="entrada">💚 Entrada</option>
+            <option value="saida">🔴 Saída</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor *</label>
+          <input class="form-input" id="fin-valor" type="number" step="0.01" min="0" placeholder="0,00">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Categoria</label>
+          <input class="form-input" id="fin-cat" placeholder="Dízimo, Oferta...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data *</label>
+          <input class="form-input" id="fin-data" type="date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Forma de Pagamento</label>
+        <select class="form-input" id="fin-forma">
+          <option value="Dinheiro">💵 Dinheiro</option>
+          <option value="PIX">⚡ PIX</option>
+          <option value="Cartão">💳 Cartão</option>
+          <option value="Transferência">🏦 Transferência</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição</label>
+        <input class="form-input" id="fin-desc" placeholder="Descrição...">
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal('modal-fin')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarFin()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Usuário -->
+<div class="modal-overlay" id="modal-usuario" onclick="if(event.target===this)closeModal('modal-usuario')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-usr-title">Novo Usuário</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-usuario')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="usr-id">
+      <div class="form-group">
+        <label class="form-label">Nome *</label>
+        <input class="form-input" id="usr-nome" placeholder="Nome completo">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Usuário *</label>
+          <input class="form-input" id="usr-login" placeholder="login">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha *</label>
+          <input class="form-input" id="usr-senha" type="password" placeholder="Senha">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Perfil</label>
+          <select class="form-input" id="usr-role" onchange="toggleMinSel()">
+            <option value="admin">🔴 Administrador</option>
+            <option value="lider">🔵 Líder de Ministério</option>
+          </select>
+        </div>
+        <div class="form-group" id="usr-min-group">
+          <label class="form-label">Ministério</label>
+          <select class="form-input" id="usr-ministerio"></select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal('modal-usuario')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarUsuario()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────
+let USER = null;
+let DATA = { membros:[], ministerios:[], eventos:[], musicas:[], setlists:[], mural:[], financeiro:[], usuarios:[] };
+let _minAtivo = null;
+let _postImg = null;
+let _semitones = {};
+const TONS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+// ── UTILS ─────────────────────────────────────────────────────────
+function iniciais(n){return(n||'').split(' ').filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join('');}
+function fmtData(iso){if(!iso)return['—','—'];const[,m,d]=iso.split('-');const ms=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];return[d,ms[parseInt(m)-1]];}
+function fmtMoeda(v){return'R$ '+(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});}
+function fmtDataBr(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return`${d}/${m}/${y}`;}
+function isAdmin(){return USER&&USER.role==='admin';}
+function canManage(mid){return isAdmin()||(USER&&USER.role==='lider'&&USER.ministerio_id==mid);}
+
+function toast(msg,type='info'){
+  const w=document.getElementById('toast-wrap');
+  const t=document.createElement('div');
+  t.className=`toast toast-${type}`;t.textContent=msg;
+  w.appendChild(t);setTimeout(()=>t.remove(),3000);
+}
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ── AUTH ──────────────────────────────────────────────────────────
+async function doLogin(){
+  const usuario=document.getElementById('l-user').value.trim();
+  const senha=document.getElementById('l-pass').value;
+  const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usuario,senha})});
+  const data=await res.json();
+  if(!data.ok){document.getElementById('l-err').textContent=data.msg||'Erro';return;}
+  USER=data.user;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('tb-user').textContent=USER.nome.split(' ')[0];
+  document.getElementById('tb-avatar').textContent=iniciais(USER.nome);
+  applyRole();
+  await loadAll();
+  navTo('dashboard');
+}
+
+async function doLogout(){
+  await fetch('/api/logout',{method:'POST'});
+  location.reload();
+}
+
+function applyRole(){
+  document.querySelectorAll('.admin-only').forEach(el=>{el.style.display=isAdmin()?'':'none';});
+  document.getElementById('btn-novo-membro').style.display=isAdmin()?'':'none';
+  document.getElementById('btn-novo-min').style.display=isAdmin()?'':'none';
+  document.getElementById('btn-novo-ev').style.display=isAdmin()?'':'none';
+}
+
+async function checkSession(){
+  const res=await fetch('/api/me');
+  if(res.ok){const d=await res.json();if(d.ok){USER=d.user;return true;}}
+  return false;
+}
+
+// ── LOAD DATA ─────────────────────────────────────────────────────
+async function api(url,opts={}){
+  const res=await fetch(url,{headers:{'Content-Type':'application/json'},...opts});
+  return res.json();
+}
+
+async function loadAll(){
+  const [membros,ministerios,eventos,musicas,setlists,mural]=await Promise.all([
+    api('/api/membros'),api('/api/ministerios'),api('/api/eventos'),
+    api('/api/musicas'),api('/api/setlists'),api('/api/mural')
+  ]);
+  DATA.membros=membros;DATA.ministerios=ministerios;DATA.eventos=eventos;
+  DATA.musicas=musicas;DATA.setlists=setlists;DATA.mural=mural;
+  if(isAdmin()){
+    const [fin,usr]=await Promise.all([api('/api/financeiro'),api('/api/usuarios')]);
+    DATA.financeiro=fin;DATA.usuarios=usr;
+  }
+}
+
+// ── NAV ───────────────────────────────────────────────────────────
+function navTo(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg=document.getElementById('page-'+page);
+  if(pg)pg.classList.add('active');
+  const ni=document.querySelector(`.nav-item[data-page="${page}"]`);
+  if(ni)ni.classList.add('active');
+  document.getElementById('nav-more').classList.remove('open');
+  if(page==='dashboard')renderDashboard();
+  if(page==='membros')renderMembros();
+  if(page==='ministerios'){fecharDetalhe();renderMinisterios();}
+  if(page==='agenda')renderAgenda();
+  if(page==='louvor')renderMusicas();
+  if(page==='mural')renderMural();
+  if(page==='financeiro')renderFinanceiro();
+  if(page==='usuarios')renderUsuarios();
+}
+
+function toggleMore(){document.getElementById('nav-more').classList.toggle('open');}
+
+// ── DASHBOARD ────────────────────────────────────────────────────
+function renderDashboard(){
+  const m=DATA.membros,hoje=new Date().toISOString().split('T')[0],mes=hoje.slice(5,7);
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-val">${m.length}</div><div class="stat-lbl">Membros</div></div>
+    <div class="stat-card"><div class="stat-val">${m.filter(x=>x.status==='Ativo').length}</div><div class="stat-lbl">Ativos</div></div>
+    <div class="stat-card"><div class="stat-val">${DATA.ministerios.length}</div><div class="stat-lbl">Ministérios</div></div>
+    <div class="stat-card"><div class="stat-val">${DATA.mural.length}</div><div class="stat-lbl">Posts</div></div>`;
+  const aniv=m.filter(x=>x.nasc&&x.nasc.slice(5,7)===mes);
+  document.getElementById('dash-aniv').innerHTML=aniv.length?aniv.map(x=>`<div class="list-item"><div class="list-avatar">${iniciais(x.nome)}</div><div class="list-info"><div class="list-nome">${x.nome}</div><div class="list-sub">Dia ${x.nasc.slice(8,10)}</div></div></div>`).join(''):'<div class="empty" style="padding:16px">Nenhum este mês</div>';
+  const evs=DATA.eventos.filter(e=>e.data>=hoje).slice(0,3);
+  document.getElementById('dash-eventos').innerHTML=evs.length?evs.map(e=>{const[dia,mes2]=fmtData(e.data);return`<div class="ev-card"><div class="ev-date"><div class="ev-dia">${dia}</div><div class="ev-mes">${mes2}</div></div><div><div class="ev-titulo">${e.titulo}</div><div class="ev-sub">${e.hora||''} ${e.local?'· '+e.local:''}</div></div></div>`}).join(''):'<div class="empty" style="padding:16px">Nenhum evento próximo</div>';
+  const posts=DATA.mural.slice(0,2);
+  document.getElementById('dash-mural').innerHTML=posts.length?posts.map(p=>`<div class="list-item"><div class="list-info"><div class="list-nome">${p.titulo}</div><div class="list-sub">${p.ministerio_nome} · ${p.autor_nome}</div></div></div>`).join(''):'<div class="empty" style="padding:16px">Nenhum post</div>';
+}
+
+// ── MEMBROS ───────────────────────────────────────────────────────
+function renderMembros(){
+  const q=(document.getElementById('membros-search').value||'').toLowerCase();
+  const list=DATA.membros.filter(m=>!q||m.nome.toLowerCase().includes(q));
+  const el=document.getElementById('membros-list');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">👥</div><p>Nenhum membro encontrado</p></div>';return;}
+  el.innerHTML=list.map(m=>`<div class="list-item">
+    <div class="list-avatar">${iniciais(m.nome)}</div>
+    <div class="list-info">
+      <div class="list-nome">${m.nome}</div>
+      <div class="list-sub">${m.profissao||''} ${m.bairro?'· '+m.bairro:''}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span class="badge badge-${(m.status||'ativo').toLowerCase().replace('í','i')}">${m.status||'Ativo'}</span>
+      ${isAdmin()?`<button class="btn btn-ghost btn-sm" onclick="openModalMembro(${m.id})">✏️</button>
+      <button class="btn btn-ghost btn-sm" onclick="delMembro(${m.id})">🗑️</button>`:''}
+    </div>
+  </div>`).join('');
+}
+
+function openModalMembro(id){
+  document.getElementById('modal-membro-title').textContent=id?'Editar Membro':'Novo Membro';
+  document.getElementById('m-id').value=id||'';
+  if(id){
+    const m=DATA.membros.find(x=>x.id===id)||{};
+    document.getElementById('m-nome').value=m.nome||'';
+    document.getElementById('m-nasc').value=m.nasc||'';
+    document.getElementById('m-status').value=m.status||'Ativo';
+    document.getElementById('m-tel').value=m.tel||'';
+    document.getElementById('m-email').value=m.email||'';
+    document.getElementById('m-prof').value=m.profissao||'';
+    document.getElementById('m-bairro').value=m.bairro||'';
+    document.getElementById('m-obs').value=m.obs||'';
+  } else {
+    ['m-nome','m-nasc','m-tel','m-email','m-prof','m-bairro','m-obs'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('m-status').value='Ativo';
+  }
+  openModal('modal-membro');
+}
+
+async function salvarMembro(){
+  const id=document.getElementById('m-id').value;
+  const nome=document.getElementById('m-nome').value.trim();
+  if(!nome){toast('Informe o nome','error');return;}
+  const body={nome,nasc:document.getElementById('m-nasc').value,status:document.getElementById('m-status').value,
+    tel:document.getElementById('m-tel').value,email:document.getElementById('m-email').value,
+    profissao:document.getElementById('m-prof').value,bairro:document.getElementById('m-bairro').value,
+    obs:document.getElementById('m-obs').value};
+  const res=await api(id?`/api/membros/${id}`:'/api/membros',{method:id?'PUT':'POST',body:JSON.stringify(body)});
+  if(!res.ok){toast('Erro ao salvar','error');return;}
+  if(id){const idx=DATA.membros.findIndex(x=>x.id==id);if(idx>=0)DATA.membros[idx]=res.membro;}
+  else DATA.membros.push(res.membro);
+  closeModal('modal-membro');renderMembros();toast('Membro salvo!','success');
+}
+
+async function delMembro(id){
+  if(!confirm('Excluir este membro?'))return;
+  await api(`/api/membros/${id}`,{method:'DELETE'});
+  DATA.membros=DATA.membros.filter(m=>m.id!==id);renderMembros();toast('Excluído','success');
+}
+
+// ── MINISTÉRIOS ───────────────────────────────────────────────────
+function renderMinisterios(){
+  const el=document.getElementById('ministerios-list');
+  if(!DATA.ministerios.length){el.innerHTML='<div class="empty"><div class="empty-icon">🎺</div><p>Nenhum ministério cadastrado</p></div>';return;}
+  el.innerHTML=DATA.ministerios.map(c=>`<div class="card" onclick="abrirDetalhe(${c.id})" style="cursor:pointer">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-weight:700">${c.nome}</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:4px">${c.membros.length} membro${c.membros.length!==1?'s':''} ${c.descricao?'· '+c.descricao:''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px" onclick="event.stopPropagation()">
+        ${canManage(c.id)?`<button class="btn btn-ghost btn-sm" onclick="openModalMinisterio(${c.id})">✏️</button>`:''}
+        ${isAdmin()?`<button class="btn btn-ghost btn-sm" onclick="delMinisterio(${c.id})">🗑️</button>`:''}
+        <span style="color:var(--muted)">›</span>
+      </div>
+    </div>
+  </div>`).join('');
+}
+
+function abrirDetalhe(id){
+  _minAtivo=id;
+  const c=DATA.ministerios.find(x=>x.id===id);if(!c)return;
+  document.getElementById('lista-ministerios').style.display='none';
+  document.getElementById('detalhe-ministerio').style.display='block';
+  document.getElementById('btn-add-membro-min').style.display=canManage(id)?'':'none';
+  document.getElementById('detalhe-content').innerHTML=`
+    <div class="page-header"><div class="page-title">${c.nome}</div><div class="page-sub">${c.descricao||''}</div></div>
+    <div class="card">
+      <div class="card-title">👥 Membros (${c.membros.length})</div>
+      ${c.membros.length?c.membros.map(m=>`<div class="list-item">
+        <div class="list-avatar">${iniciais(m.nome)}</div>
+        <div class="list-info"><div class="list-nome">${m.nome}</div><div class="list-sub">${m.status||''}</div></div>
+        ${canManage(id)?`<button class="btn btn-ghost btn-sm" onclick="remMembro(${m.id},${id})">✕</button>`:''}
+      </div>`).join(''):'<div class="empty" style="padding:12px">Nenhum membro</div>'}
+    </div>`;
+}
+
+function fecharDetalhe(){
+  _minAtivo=null;
+  document.getElementById('lista-ministerios').style.display='';
+  document.getElementById('detalhe-ministerio').style.display='none';
+}
+
+function openModalMinisterio(id){
+  document.getElementById('modal-min-title').textContent=id?'Editar Ministério':'Novo Ministério';
+  document.getElementById('min-id').value=id||'';
+  if(id){const c=DATA.ministerios.find(x=>x.id===id)||{};document.getElementById('min-nome').value=c.nome||'';document.getElementById('min-desc').value=c.descricao||'';}
+  else{document.getElementById('min-nome').value='';document.getElementById('min-desc').value='';}
+  openModal('modal-ministerio');
+}
+
+async function salvarMinisterio(){
+  const id=document.getElementById('min-id').value;
+  const nome=document.getElementById('min-nome').value.trim();
+  if(!nome){toast('Informe o nome','error');return;}
+  const body={nome,descricao:document.getElementById('min-desc').value};
+  const res=await api(id?`/api/ministerios/${id}`:'/api/ministerios',{method:id?'PUT':'POST',body:JSON.stringify(body)});
+  if(!res.ok){toast('Erro','error');return;}
+  await loadMinisterios();
+  closeModal('modal-ministerio');renderMinisterios();toast('Salvo!','success');
+}
+
+async function delMinisterio(id){
+  if(!confirm('Excluir este ministério?'))return;
+  await api(`/api/ministerios/${id}`,{method:'DELETE'});
+  await loadMinisterios();renderMinisterios();toast('Excluído','success');
+}
+
+async function loadMinisterios(){
+  DATA.ministerios=await api('/api/ministerios');
+}
+
+function openModalAddMembro(){
+  const sel=document.getElementById('add-membro-sel');
+  const ids=new Set((DATA.ministerios.find(c=>c.id===_minAtivo)||{membros:[]}).membros.map(m=>m.id));
+  sel.innerHTML=DATA.membros.filter(m=>!ids.has(m.id)).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  openModal('modal-add-membro-min');
+}
+
+async function confirmarAddMembro(){
+  const membroId=parseInt(document.getElementById('add-membro-sel').value);
+  await api(`/api/ministerios/${_minAtivo}/membros`,{method:'POST',body:JSON.stringify({membro_id:membroId})});
+  await loadMinisterios();closeModal('modal-add-membro-min');abrirDetalhe(_minAtivo);toast('Membro adicionado!','success');
+}
+
+async function remMembro(membroId,minId){
+  if(!confirm('Remover do ministério?'))return;
+  await api(`/api/ministerios/${minId}/membros/${membroId}`,{method:'DELETE'});
+  await loadMinisterios();abrirDetalhe(minId);toast('Removido','success');
+}
+
+// ── AGENDA ────────────────────────────────────────────────────────
+function renderAgenda(){
+  const hoje=new Date().toISOString().split('T')[0];
+  const evs=[...DATA.eventos].sort((a,b)=>a.data.localeCompare(b.data));
+  const el=document.getElementById('agenda-list');
+  if(!evs.length){el.innerHTML='<div class="empty"><div class="empty-icon">📅</div><p>Nenhum evento</p></div>';return;}
+  let html='',lastMes='';
+  evs.forEach(e=>{
+    const[dia,mes]=fmtData(e.data);
+    if(mes!==lastMes){html+=`<div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px">${mes}</div>`;lastMes=mes;}
+    const past=e.data<hoje;
+    html+=`<div class="ev-card" style="${past?'opacity:.5':''}">
+      <div class="ev-date"><div class="ev-dia">${dia}</div><div class="ev-mes">${mes}</div></div>
+      <div style="flex:1"><div class="ev-titulo">${e.titulo}</div>
+      <div class="ev-sub">${e.hora?`🕐 ${e.hora}`:''} ${e.local?`📍 ${e.local}`:''} <span class="tipo-badge tipo-${e.tipo}">${e.tipo}</span></div></div>
+      ${isAdmin()?`<div style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="openModalEvento(${e.id})">✏️</button><button class="btn btn-ghost btn-sm" onclick="delEvento(${e.id})">🗑️</button></div>`:''}
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+function openModalEvento(id){
+  document.getElementById('modal-ev-title').textContent=id?'Editar Evento':'Novo Evento';
+  document.getElementById('ev-id').value=id||'';
+  if(id){const e=DATA.eventos.find(x=>x.id===id)||{};document.getElementById('ev-titulo').value=e.titulo||'';document.getElementById('ev-data').value=e.data||'';document.getElementById('ev-hora').value=e.hora||'';document.getElementById('ev-local').value=e.local||'';document.getElementById('ev-tipo').value=e.tipo||'culto';}
+  else{['ev-titulo','ev-data','ev-hora','ev-local'].forEach(i=>document.getElementById(i).value='');document.getElementById('ev-tipo').value='culto';}
+  openModal('modal-evento');
+}
+
+async function salvarEvento(){
+  const id=document.getElementById('ev-id').value;
+  const titulo=document.getElementById('ev-titulo').value.trim(),data=document.getElementById('ev-data').value;
+  if(!titulo||!data){toast('Preencha título e data','error');return;}
+  const body={titulo,data,hora:document.getElementById('ev-hora').value,local:document.getElementById('ev-local').value,tipo:document.getElementById('ev-tipo').value};
+  const res=await api(id?`/api/eventos/${id}`:'/api/eventos',{method:id?'PUT':'POST',body:JSON.stringify(body)});
+  if(!res.ok){toast('Erro','error');return;}
+  if(id){const idx=DATA.eventos.findIndex(x=>x.id==id);if(idx>=0)DATA.eventos[idx]=res.evento;}
+  else DATA.eventos.push(res.evento);
+  closeModal('modal-evento');renderAgenda();toast('Evento salvo!','success');
+}
+
+async function delEvento(id){
+  if(!confirm('Excluir?'))return;
+  await api(`/api/eventos/${id}`,{method:'DELETE'});
+  DATA.eventos=DATA.eventos.filter(e=>e.id!==id);renderAgenda();toast('Excluído','success');
+}
+
+// ── LOUVOR ────────────────────────────────────────────────────────
+function louvorTab(t){
+  document.getElementById('louvor-rep-panel').style.display=t==='rep'?'':'none';
+  document.getElementById('louvor-set-panel').style.display=t==='set'?'':'none';
+  document.getElementById('tab-rep').style.cssText=t==='rep'?'background:var(--brand);color:#fff':'';
+  document.getElementById('tab-set').style.cssText=t==='set'?'background:var(--brand);color:#fff':'';
+  if(t==='set')renderSetlists();
+}
+
+function transpAcorde(a,n){const m=a.match(/^([A-G][#b]?)(.*)/);if(!m)return a;const en={'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#'};const b=en[m[1]]||m[1];const i=TONS.indexOf(b);if(i<0)return a;return TONS[((i+n)%12+12)%12]+m[2];}
+function transpCifra(txt,n){return txt.replace(/\[([^\]]+)\]/g,(_,a)=>'['+transpAcorde(a,n)+']');}
+function cifraHtml(txt){return txt.replace(/\[([^\]]+)\]/g,'<span class="acorde">$1</span>');}
+
+function renderMusicas(){
+  const q=(document.getElementById('musicas-search').value||'').toLowerCase();
+  const list=DATA.musicas.filter(m=>!q||m.titulo.toLowerCase().includes(q)||( m.artista||'').toLowerCase().includes(q));
+  const el=document.getElementById('musicas-list');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">🎵</div><p>Nenhuma música</p></div>';return;}
+  _semitones={};
+  el.innerHTML=list.map((m,i)=>`<div class="musica-card" id="mc-${i}">
+    <div class="musica-head" onclick="toggleMus(${i})">
+      <div class="musica-icon">🎵</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.88rem">${m.titulo}</div><div style="font-size:.74rem;color:var(--muted)">${m.artista||'—'}</div></div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span id="tom-badge-${i}" style="font-size:.75rem;font-weight:700;color:var(--brand2);background:rgba(225,29,42,.1);padding:2px 8px;border-radius:6px">${m.tom||'—'}</span>
+        ${canManage(null)||isAdmin()?`<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModalMusica(${m.id})">✏️</button><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();delMusica(${m.id})">🗑️</button>`:''}
+      </div>
+    </div>
+    <div class="musica-body">
+      ${m.cifra?`<div class="ton-ctrl"><span style="font-size:.8rem;color:var(--muted)">Tom:</span><button class="ton-btn" onclick="transporMus(${i},-1)">♭−</button><span class="ton-label" id="ton-${i}">${m.tom||'—'}</span><button class="ton-btn" onclick="transporMus(${i},+1)">♯+</button><button class="ton-btn" onclick="resetMus(${i})">↺</button></div><div class="cifra-box" id="cifra-${i}">${cifraHtml(m.cifra)}</div>`:'<div style="color:var(--muted);font-size:.85rem">Cifra não cadastrada</div>'}
+    </div>
+  </div>`).join('');
+}
+
+function toggleMus(i){document.getElementById('mc-'+i).classList.toggle('open');}
+function transporMus(i,n){
+  _semitones[i]=(_semitones[i]||0)+n;
+  const s=_semitones[i],m=DATA.musicas[i];
+  const novoTom=transpAcorde(m.tom||'C',s);
+  document.getElementById('ton-'+i).textContent=novoTom;
+  document.getElementById('tom-badge-'+i).textContent=novoTom;
+  if(m.cifra)document.getElementById('cifra-'+i).innerHTML=cifraHtml(transpCifra(m.cifra,s));
+}
+function resetMus(i){_semitones[i]=0;const m=DATA.musicas[i];document.getElementById('ton-'+i).textContent=m.tom||'—';document.getElementById('tom-badge-'+i).textContent=m.tom||'—';if(m.cifra)document.getElementById('cifra-'+i).innerHTML=cifraHtml(m.cifra);}
+
+function openModalMusica(id){
+  document.getElementById('modal-mus-title').textContent=id?'Editar Música':'Nova Música';
+  document.getElementById('mus-id').value=id||'';
+  if(id){const m=DATA.musicas.find(x=>x.id===id)||{};document.getElementById('mus-titulo').value=m.titulo||'';document.getElementById('mus-artista').value=m.artista||'';document.getElementById('mus-tom').value=m.tom||'';document.getElementById('mus-cifra').value=m.cifra||'';}
+  else{['mus-titulo','mus-artista','mus-cifra'].forEach(i=>document.getElementById(i).value='');document.getElementById('mus-tom').value='';}
+  openModal('modal-musica');
+}
+
+async function salvarMusica(){
+  const id=document.getElementById('mus-id').value;
+  const titulo=document.getElementById('mus-titulo').value.trim();
+  if(!titulo){toast('Informe o título','error');return;}
+  const body={titulo,artista:document.getElementById('mus-artista').value,tom:document.getElementById('mus-tom').value,cifra:document.getElementById('mus-cifra').value};
+  const res=await api(id?`/api/musicas/${id}`:'/api/musicas',{method:id?'PUT':'POST',body:JSON.stringify(body)});
+  if(!res.ok){toast('Erro','error');return;}
+  if(id){const idx=DATA.musicas.findIndex(x=>x.id==id);if(idx>=0)DATA.musicas[idx]=res.musica;}
+  else DATA.musicas.push(res.musica);
+  closeModal('modal-musica');renderMusicas();toast('Música salva!','success');
+}
+
+async function delMusica(id){
+  if(!confirm('Excluir?'))return;
+  await api(`/api/musicas/${id}`,{method:'DELETE'});
+  DATA.musicas=DATA.musicas.filter(m=>m.id!==id);renderMusicas();toast('Excluída','success');
+}
+
+function renderSetlists(){
+  const el=document.getElementById('setlists-list');
+  if(!DATA.setlists.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>Nenhum setlist</p></div>';return;}
+  el.innerHTML=DATA.setlists.map(s=>`<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
+      <div><div style="font-weight:700">${s.titulo}</div><div style="font-size:.75rem;color:var(--muted)">${fmtDataBr(s.data)||''} ${s.hora?'· '+s.hora:''}</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="delSetlist(${s.id})">🗑️</button>
+    </div>
+    ${s.musicas.map((m,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)"><span style="width:20px;height:20px;border-radius:50%;background:var(--brand);color:#fff;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span><div style="flex:1"><div style="font-size:.85rem;font-weight:600">${m.titulo}</div><div style="font-size:.74rem;color:var(--muted)">${m.artista||'—'}</div></div><span style="font-size:.75rem;font-weight:700;color:var(--brand2);background:rgba(225,29,42,.1);padding:2px 8px;border-radius:6px">${m.tom||'—'}</span></div>`).join('')}
+  </div>`).join('');
+}
+
+function openModalSetlist(){toast('Em breve: criar setlist','info');}
+
+async function delSetlist(id){
+  if(!confirm('Excluir setlist?'))return;
+  await api(`/api/setlists/${id}`,{method:'DELETE'});
+  DATA.setlists=DATA.setlists.filter(s=>s.id!==id);renderSetlists();toast('Excluído','success');
+}
+
+// ── MURAL ─────────────────────────────────────────────────────────
+function renderMural(){
+  const el=document.getElementById('mural-list');
+  if(!DATA.mural.length){el.innerHTML='<div class="empty"><div class="empty-icon">📌</div><p>Nenhum post no mural</p></div>';return;}
+  el.innerHTML=DATA.mural.map(p=>`<div class="mural-card">
+    ${p.imagem?`<img class="mural-img" src="${p.imagem}" onclick="lightbox('${p.id}')">`:''}
+    <div class="mural-body">
+      <div class="mural-titulo">${p.titulo}</div>
+      ${p.texto?`<div class="mural-texto">${p.texto}</div>`:''}
+      <div class="mural-meta">
+        <span class="mural-min">${p.ministerio_nome}</span>
+        <span>${p.autor_nome}</span>
+        <div class="mural-actions">
+          ${isAdmin()||p.autor_id==USER.id?`<button class="btn btn-ghost btn-sm" onclick="openModalPost(${p.id})">✏️</button><button class="btn btn-ghost btn-sm" onclick="delPost(${p.id})">🗑️</button>`:''}
+        </div>
+      </div>
+    </div>
+  </div>`).join('');
+}
+
+function lightbox(pid){
+  const p=DATA.mural.find(x=>x.id==pid);if(!p||!p.imagem)return;
+  const lb=document.createElement('div');lb.className='lightbox';
+  lb.innerHTML=`<img src="${p.imagem}">`;lb.onclick=()=>lb.remove();
+  document.body.appendChild(lb);
+}
+
+function onImgChange(e){
+  const f=e.target.files[0];if(!f)return;
+  if(f.size>5*1024*1024){toast('Imagem muito grande (máx 5MB)','error');return;}
+  const r=new FileReader();r.onload=ev=>{_postImg=ev.target.result;document.getElementById('post-img-thumb').src=_postImg;document.getElementById('post-img-preview').style.display='';document.getElementById('post-upload-ph').style.display='none';};r.readAsDataURL(f);
+}
+
+function removerImg(){_postImg=null;document.getElementById('post-img-thumb').src='';document.getElementById('post-img-preview').style.display='none';document.getElementById('post-upload-ph').style.display='';}
+
+function openModalPost(id){
+  _postImg=null;
+  document.getElementById('post-id').value=id||'';
+  document.getElementById('modal-post-title').textContent=id?'Editar Post':'Novo Post';
+  document.getElementById('post-titulo').value='';
+  document.getElementById('post-texto').value='';
+  document.getElementById('post-img-preview').style.display='none';
+  document.getElementById('post-upload-ph').style.display='';
+  document.getElementById('post-img-input').value='';
+  const sel=document.getElementById('post-ministerio');
+  sel.innerHTML='<option value="">📢 Geral</option>';
+  const lista=isAdmin()?DATA.ministerios:DATA.ministerios.filter(c=>c.id===USER.ministerio_id);
+  lista.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nome;sel.appendChild(o);});
+  document.getElementById('post-min-group').style.display=isAdmin()?'':'none';
+  if(id){
+    const p=DATA.mural.find(x=>x.id==id)||{};
+    document.getElementById('post-titulo').value=p.titulo||'';
+    document.getElementById('post-texto').value=p.texto||'';
+    sel.value=p.ministerio_id||'';
+    if(p.imagem){_postImg=p.imagem;document.getElementById('post-img-thumb').src=p.imagem;document.getElementById('post-img-preview').style.display='';document.getElementById('post-upload-ph').style.display='none';}
+  }
+  openModal('modal-post');
+}
+
+async function salvarPost(){
+  const id=document.getElementById('post-id').value;
+  const titulo=document.getElementById('post-titulo').value.trim();
+  if(!titulo){toast('Informe o título','error');return;}
+  const texto=document.getElementById('post-texto').value.trim();
+  if(!texto&&!_postImg){toast('Adicione texto ou imagem','error');return;}
+  const ministerio_id=document.getElementById('post-ministerio').value||null;
+  const body={titulo,texto,imagem:_postImg,ministerio_id};
+  const res=await api(id?`/api/mural/${id}`:'/api/mural',{method:id?'PUT':'POST',body:JSON.stringify(body)});
+  if(!res.ok){toast('Erro ao publicar','error');return;}
+  if(id){const idx=DATA.mural.findIndex(x=>x.id==id);if(idx>=0)DATA.mural[idx]=res.post;}
+  else DATA.mural.unshift(res.post);
+  closeModal('modal-post');renderMural();toast('Post publicado!','success');
+}
+
+async function delPost(id){
+  if(!confirm('Excluir post?'))return;
+  await api(`/api/mural/${id}`,{method:'DELETE'});
+  DATA.mural=DATA.mural.filter(p=>p.id!=id);renderMural();toast('Excluído','success');
+}
+
+async function notificarMembros(){
+  if(!DATA.mural.length){toast('Nenhum post para notificar','error');return;}
+  const p=DATA.mural[0];
+  try{
+    const res=await fetch('https://api.onesignal.com/notifications',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Basic os_v2_app_43fwd2om7vd2pkuwn37vo5vreje3dmsbploeoknavzxfr45ip6ewjvc4revt6tsu5a55gq6udupvrqsepqs3hrqt5aqy7gau5myluuy'},
+      body:JSON.stringify({app_id:'e6cb61e9-ccfd-47a7-aa96-6eff5776b122',included_segments:['Total Subscriptions'],headings:{pt:'Reino & Graça — '+p.titulo},contents:{pt:p.texto||p.titulo},url:window.location.origin+'/portal'})});
+    const d=await res.json();
+    if(d.id)toast('✅ Notificação enviada!','success');
+    else toast('Erro: '+( d.errors?.[0]||'tente novamente'),'error');
+  }catch{toast('Erro de conexão','error');}
+}
+
+// ── FINANCEIRO ────────────────────────────────────────────────────
+function renderFinanceiro(){
+  const fin=DATA.financeiro;
+  const ent=fin.filter(f=>f.tipo==='entrada').reduce((s,f)=>s+f.valor,0);
+  const sai=fin.filter(f=>f.tipo==='saida').reduce((s,f)=>s+f.valor,0);
+  const sal=ent-sai;
+  document.getElementById('fin-resumo').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center">
+      <div><div style="font-size:.72rem;color:var(--muted)">Entradas</div><div style="font-weight:700;color:#22c55e;font-size:.95rem">${fmtMoeda(ent)}</div></div>
+      <div><div style="font-size:.72rem;color:var(--muted)">Saídas</div><div style="font-weight:700;color:var(--brand2);font-size:.95rem">${fmtMoeda(sai)}</div></div>
+      <div><div style="font-size:.72rem;color:var(--muted)">Saldo</div><div style="font-weight:700;font-size:.95rem;color:${sal>=0?'#22c55e':'var(--brand2)'}">${fmtMoeda(sal)}</div></div>
+    </div>`;
+  const el=document.getElementById('fin-list');
+  if(!fin.length){el.innerHTML='<div class="empty"><div class="empty-icon">💰</div><p>Nenhum lançamento</p></div>';return;}
+  el.innerHTML='<div class="card">'+fin.slice(0,50).map(f=>`<div class="fin-row">
+    <div class="fin-dot fin-${f.tipo}"></div>
+    <div class="fin-info"><div class="fin-desc">${f.descricao||f.categoria||f.tipo}</div><div class="fin-cat">${fmtDataBr(f.data)} · ${f.categoria||''} · ${f.forma||''}</div></div>
+    <div class="${f.tipo==='entrada'?'fin-pos':'fin-neg'} fin-val">${f.tipo==='entrada'?'+':'−'}${fmtMoeda(f.valor)}</div>
+    <button class="btn btn-ghost btn-sm" onclick="delFin(${f.id})">🗑️</button>
+  </div>`).join('')+'</div>';
+}
+
+function openModalFin(){
+  document.getElementById('fin-data').value=new Date().toISOString().split('T')[0];
+  document.getElementById('fin-valor').value='';document.getElementById('fin-cat').value='';document.getElementById('fin-desc').value='';
+  openModal('modal-fin');
+}
+
+async function salvarFin(){
+  const valor=document.getElementById('fin-valor').value,data=document.getElementById('fin-data').value;
+  if(!valor||!data){toast('Preencha valor e data','error');return;}
+  const body={tipo:document.getElementById('fin-tipo').value,categoria:document.getElementById('fin-cat').value,valor:parseFloat(valor),data,descricao:document.getElementById('fin-desc').value,forma:document.getElementById('fin-forma').value};
+  const res=await api('/api/financeiro',{method:'POST',body:JSON.stringify(body)});
+  if(!res.ok){toast('Erro','error');return;}
+  DATA.financeiro.unshift(res.lancamento);closeModal('modal-fin');renderFinanceiro();toast('Lançamento salvo!','success');
+}
+
+async function delFin(id){
+  if(!confirm('Excluir?'))return;
+  await api(`/api/financeiro/${id}`,{method:'DELETE'});
+  DATA.financeiro=DATA.financeiro.filter(f=>f.id!==id);renderFinanceiro();toast('Excluído','success');
+}
+
+// ── USUÁRIOS ──────────────────────────────────────────────────────
+function renderUsuarios(){
+  const el=document.getElementById('usuarios-list');
+  if(!DATA.usuarios.length){el.innerHTML='<div class="empty"><div class="empty-icon">🔑</div><p>Nenhum usuário</p></div>';return;}
+  el.innerHTML=DATA.usuarios.map(u=>`<div class="list-item">
+    <div class="list-avatar">${iniciais(u.nome)}</div>
+    <div class="list-info"><div class="list-nome">${u.nome}</div><div class="list-sub">@${u.usuario}</div></div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span class="badge ${u.role==='admin'?'badge-admin':'badge-ministerio'}">${u.role==='admin'?'Admin':'Líder'}</span>
+      <button class="btn btn-ghost btn-sm" onclick="openModalUsuario(${u.id})">✏️</button>
+      <button class="btn btn-ghost btn-sm" onclick="delUsuario(${u.id})">🗑️</button>
+    </div>
+  </div>`).join('');
+}
+
+function openModalUsuario(id){
+  document.getElementById('modal-usr-title').textContent=id?'Editar Usuário':'Novo Usuário';
+  document.getElementById('usr-id').value=id||'';
+  const sel=document.getElementById('usr-ministerio');
+  sel.innerHTML=DATA.ministerios.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  if(id){const u=DATA.usuarios.find(x=>x.id===id)||{};document.getElementById('usr-nome').value=u.nome||'';document.getElementById('usr-login').value=u.usuario||'';document.getElementById('usr-senha').value='';document.getElementById('usr-role').value=u.role||'lider';sel.value=u.ministerio_id||'';toggleMinSel();}
+  else{['usr-nome','usr-login','usr-senha'].forEach(i=>document.getElementById(i).value='');document.getElementById('usr-role').value='lider';toggleMinSel();}
+  openModal('modal-usuario');
+}
+
+function toggleMinSel(){
+  const role=document.getElementById('usr-role').value;
+  document.getElementById('usr-min-group').style.display=role==='lider'?'':'none';
+}
+
+async function salvarUsuario(){
+  const id=document.getElementById('usr-id').value;
+  const nome=document.getElementById('usr-nome').value.trim(),login=document.getElementById('usr-login').value.trim();
+  const senha=document.getElementById('usr-senha').value,role=document.getElementById('usr-role').value;
+  if(!nome||!login){toast('Preencha nome e usuário','error');return;}
+  if(!id&&!senha){toast('Informe a senha','error');return;}
+  const ministerio_id=role==='lider'?parseInt(document.getElementById('usr-ministerio').value)||null:null;
+  const body={nome,usuario:login,senha,role,ministerio_id};
+  const res=await api(id?`/api/usuarios/${id}`:'/api/usuarios',{method:id?'PUT':'POST',body:JSON.stringify(body)});
+  if(!res.ok){toast(res.msg||'Erro','error');return;}
+  const [usr]=await Promise.all([api('/api/usuarios')]);DATA.usuarios=usr;
+  closeModal('modal-usuario');renderUsuarios();toast('Usuário salvo!','success');
+}
+
+async function delUsuario(id){
+  if(!confirm('Excluir usuário?'))return;
+  const res=await api(`/api/usuarios/${id}`,{method:'DELETE'});
+  if(!res.ok){toast(res.msg||'Erro','error');return;}
+  DATA.usuarios=DATA.usuarios.filter(u=>u.id!==id);renderUsuarios();toast('Excluído','success');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+(async()=>{
+  const ok=await checkSession();
+  if(ok){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    document.getElementById('tb-user').textContent=USER.nome.split(' ')[0];
+    document.getElementById('tb-avatar').textContent=iniciais(USER.nome);
+    applyRole();await loadAll();navTo('dashboard');
+  }
+})();
+</script>
+</body>
+</html>

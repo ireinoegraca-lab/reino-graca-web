@@ -1,4 +1,4 @@
-import os, base64
+import os, base64, io
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, Usuario, Membro, Ministerio, Evento, Musica, Setlist, SetlistItem, Financeiro, MuralPost
@@ -257,6 +257,59 @@ def add_financeiro():
     db.session.add(f); db.session.commit()
     return jsonify({'ok':True,'lancamento':serialize_fin(f)})
 
+@app.route('/api/financeiro/importar', methods=['POST'])
+@login_required
+def importar_financeiro():
+    if not is_admin(): return jsonify({'ok':False}), 403
+    if 'arquivo' not in request.files:
+        return jsonify({'ok':False,'msg':'Nenhum arquivo enviado'}), 400
+    arquivo = request.files['arquivo']
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(arquivo.read()))
+        ws = wb.active
+        headers = [str(c.value).strip().lower() if c.value else '' for c in ws[1]]
+        def col(row, names):
+            for n in names:
+                if n in headers:
+                    v = row[headers.index(n)].value
+                    return str(v).strip() if v is not None else ''
+            return ''
+        importados = 0
+        for row in ws.iter_rows(min_row=2):
+            valor_raw = col(row, ['valor','value','quantia'])
+            data_raw  = col(row, ['data','date','data do lançamento'])
+            if not valor_raw or not data_raw: continue
+            try: valor = float(str(valor_raw).replace('R$','').replace('.','').replace(',','.').strip())
+            except: continue
+            tipo = col(row, ['tipo','type']) or 'entrada'
+            if tipo.lower() not in ('entrada','saida','saída'): tipo='entrada'
+            if tipo.lower() in ('saida','saída'): tipo='saida'
+            f = Financeiro(
+                tipo=tipo,
+                categoria=col(row, ['categoria','category','tipo de entrada']),
+                valor=valor,
+                data=data_raw[:10],
+                descricao=col(row, ['descrição','descricao','description','obs','observação']),
+                forma=col(row, ['forma','forma de pagamento','payment','método']) or 'Dinheiro',
+            )
+            db.session.add(f)
+            importados += 1
+        db.session.commit()
+        return jsonify({'ok':True,'importados':importados})
+    except Exception as e:
+        return jsonify({'ok':False,'msg':str(e)}), 500
+
+@app.route('/api/financeiro/<int:fid>', methods=['PUT'])
+@login_required
+def update_financeiro(fid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    f = Financeiro.query.get_or_404(fid); d = request.json
+    for k in ['tipo','categoria','valor','data','descricao','forma']:
+        if k in d: setattr(f, k, float(d[k]) if k=='valor' else d[k])
+    db.session.commit()
+    return jsonify({'ok':True,'lancamento':serialize_fin(f)})
+
 @app.route('/api/financeiro/<int:fid>', methods=['DELETE'])
 @login_required
 def del_financeiro(fid):
@@ -339,6 +392,46 @@ def del_usuario(uid):
     u = Usuario.query.get_or_404(uid); db.session.delete(u); db.session.commit()
     return jsonify({'ok':True})
 
+# ── IMPORTAR MEMBROS (Excel) ──────────────────────────────────────
+@app.route('/api/membros/importar', methods=['POST'])
+@login_required
+def importar_membros():
+    if not is_admin(): return jsonify({'ok':False}), 403
+    if 'arquivo' not in request.files:
+        return jsonify({'ok':False,'msg':'Nenhum arquivo enviado'}), 400
+    arquivo = request.files['arquivo']
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(arquivo.read()))
+        ws = wb.active
+        headers = [str(c.value).strip().lower() if c.value else '' for c in ws[1]]
+        def col(row, names):
+            for n in names:
+                if n in headers:
+                    v = row[headers.index(n)].value
+                    return str(v).strip() if v is not None else ''
+            return ''
+        importados = 0
+        for row in ws.iter_rows(min_row=2):
+            nome = col(row, ['nome','name'])
+            if not nome: continue
+            m = Membro(
+                nome=nome,
+                nasc=col(row, ['nascimento','data de nascimento','nasc','data_nasc','birthday']),
+                tel=col(row, ['telefone','tel','phone','celular','whatsapp']),
+                email=col(row, ['email','e-mail']),
+                profissao=col(row, ['profissão','profissao','profession','ocupação','ocupacao']),
+                bairro=col(row, ['bairro','neighborhood','endereco','endereço']),
+                status=col(row, ['status']) or 'Ativo',
+                obs=col(row, ['observações','observacoes','obs','notas','notes'])
+            )
+            db.session.add(m)
+            importados += 1
+        db.session.commit()
+        return jsonify({'ok':True,'importados':importados})
+    except Exception as e:
+        return jsonify({'ok':False,'msg':str(e)}), 500
+
 # ── PORTAL PÚBLICO ────────────────────────────────────────────────
 @app.route('/portal')
 def portal():
@@ -374,6 +467,7 @@ def init_db():
             db.session.commit()
             print('Usuários iniciais criados: admin/admin123 e dirceu/dirceu123')
 
+init_db()
+
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True, port=5700)

@@ -60,6 +60,28 @@ def api_login():
     login_user(u, remember=True)
     return jsonify({'ok':True,'user':{'id':u.id,'nome':u.nome,'role':u.role,'ministerio_id':u.ministerio_id}})
 
+@app.route('/api/register', methods=['POST'])
+def api_register():
+    d = request.json or {}
+    nome   = (d.get('nome') or '').strip()
+    email  = (d.get('email') or '').strip().lower()
+    tel    = (d.get('tel') or '').strip()
+    nasc   = (d.get('nasc') or '').strip()
+    usuario = (d.get('usuario') or '').strip().lower()
+    senha  = d.get('senha') or ''
+    if not nome or not usuario or not senha:
+        return jsonify({'ok':False,'msg':'Nome, usuário e senha são obrigatórios'}), 400
+    if Usuario.query.filter_by(usuario=usuario).first():
+        return jsonify({'ok':False,'msg':'Usuário já existe. Escolha outro nome de usuário.'}), 409
+    u = Usuario(nome=nome, usuario=usuario, role='membro')
+    u.set_senha(senha)
+    db.session.add(u)
+    m = Membro(nome=nome, email=email, tel=tel, nasc=nasc or None, status='Ativo')
+    db.session.add(m)
+    db.session.commit()
+    login_user(u, remember=True)
+    return jsonify({'ok':True,'user':{'id':u.id,'nome':u.nome,'role':u.role,'ministerio_id':u.ministerio_id}})
+
 @app.route('/api/logout', methods=['POST'])
 @login_required
 def api_logout():

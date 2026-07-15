@@ -33,17 +33,25 @@ input,select,textarea,button{font-family:inherit}
 .assist-typing span:nth-child(2){animation-delay:.2s}.assist-typing span:nth-child(3){animation-delay:.4s}
 @keyframes typeDot{0%,80%,100%{transform:scale(.7);opacity:.4}40%{transform:scale(1);opacity:1}}
 /* ── LOGIN ── */
-#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
-.login-box{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:36px 28px;width:100%;max-width:360px;text-align:center}
-.login-logo{width:72px;height:72px;border-radius:50%;object-fit:cover;margin:0 auto 14px;display:block;box-shadow:0 0 0 3px rgba(225,29,42,.4)}
-.login-title{font-family:'Cinzel',serif;font-size:1.4rem;font-weight:700;margin-bottom:4px}
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse 80% 60% at 50% 30%,#1a060a 0%,var(--bg) 70%)}
+.login-box{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:36px 32px;width:100%;max-width:380px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.login-logo{width:68px;height:68px;border-radius:50%;object-fit:cover;margin:0 auto 16px;display:block;box-shadow:0 0 0 3px rgba(225,29,42,.4),0 0 30px rgba(225,29,42,.2)}
+.login-emblem{width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,var(--brand),#7a0d14);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;box-shadow:0 0 30px rgba(225,29,42,.3)}
+.login-eyebrow{font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:6px}
+.login-title{font-family:'Cinzel',serif;font-size:1.5rem;font-weight:700;margin-bottom:6px}
 .login-title span{color:var(--brand2)}
-.login-sub{font-size:.82rem;color:var(--muted);margin-bottom:28px}
-.login-input{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:13px 16px;color:var(--txt);font-size:.95rem;outline:none;margin-bottom:10px;transition:border-color .2s}
+.login-sub{font-size:.82rem;color:var(--muted);margin-bottom:28px;line-height:1.5}
+.login-label{display:block;text-align:left;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:5px;margin-top:12px}
+.login-input{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:13px 16px;color:var(--txt);font-size:.95rem;outline:none;transition:border-color .2s}
 .login-input:focus{border-color:var(--brand)}
-.login-btn{width:100%;background:var(--brand);color:#fff;border:none;border-radius:12px;padding:14px;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s}
+.login-btn{width:100%;background:var(--brand);color:#fff;border:none;border-radius:12px;padding:14px;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s;margin-top:20px}
 .login-btn:hover{opacity:.88}
-.login-err{color:var(--brand2);font-size:.8rem;margin-top:8px;min-height:18px}
+.login-err{color:var(--brand2);font-size:.8rem;margin-top:10px;min-height:18px}
+.login-divider{display:flex;align-items:center;gap:10px;margin:18px 0;color:var(--muted);font-size:.75rem}
+.login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--line)}
+.login-switch{font-size:.83rem;color:var(--muted);margin-top:16px}
+.login-switch button{background:none;border:none;color:var(--brand2);cursor:pointer;font-weight:700;font-size:.83rem;text-decoration:underline;font-family:inherit}
+.login-panel{display:none}.login-panel.active{display:block}
 
 /* ── LAYOUT ── */
 #app{display:none;flex-direction:column;min-height:100vh}
@@ -212,15 +220,45 @@ input,select,textarea,button{font-family:inherit}
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
-    <img class="login-logo" src="/static/logo.jpeg" onerror="this.style.display='none'">
+    <img class="login-logo" src="/static/logo.jpeg" onerror="this.style.display='none';document.getElementById('login-emblem-fb').style.display='flex'">
+    <div id="login-emblem-fb" class="login-emblem" style="display:none">✝</div>
+    <div class="login-eyebrow">Sistema de Gestão</div>
     <div class="login-title">Reino &amp; <span>Graça</span></div>
-    <div class="login-sub">Sistema de Gestão da Igreja</div>
-    <input class="login-input" id="l-user" type="text" placeholder="Usuário" autocomplete="username"
-      onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()">
-    <input class="login-input" id="l-pass" type="password" placeholder="Senha" autocomplete="current-password"
-      onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="login-btn" onclick="doLogin()">Entrar</button>
-    <div class="login-err" id="l-err"></div>
+
+    <!-- PAINEL LOGIN -->
+    <div class="login-panel active" id="panel-login">
+      <div class="login-sub">Entre com suas credenciais para acessar o painel.</div>
+      <label class="login-label">Usuário</label>
+      <input class="login-input" id="l-user" type="text" placeholder="seu.usuario" autocomplete="username"
+        onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()">
+      <label class="login-label">Senha</label>
+      <input class="login-input" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="login-btn" onclick="doLogin()">Acessar Painel</button>
+      <div class="login-err" id="l-err"></div>
+      <div class="login-switch">Novo por aqui? <button onclick="showPanel('register')">Cadastre-se</button></div>
+    </div>
+
+    <!-- PAINEL CADASTRO -->
+    <div class="login-panel" id="panel-register">
+      <div class="login-sub">Crie sua conta para acessar o sistema da igreja.</div>
+      <label class="login-label">Nome completo</label>
+      <input class="login-input" id="r-nome" type="text" placeholder="Seu nome completo" autocomplete="name">
+      <label class="login-label">E-mail</label>
+      <input class="login-input" id="r-email" type="email" placeholder="seu@email.com" autocomplete="email">
+      <label class="login-label">Telefone</label>
+      <input class="login-input" id="r-tel" type="tel" placeholder="(27) 99999-9999">
+      <label class="login-label">Data de nascimento</label>
+      <input class="login-input" id="r-nasc" type="date">
+      <label class="login-label">Usuário</label>
+      <input class="login-input" id="r-user" type="text" placeholder="nome.sobrenome" autocomplete="username">
+      <label class="login-label">Senha</label>
+      <input class="login-input" id="r-pass" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password"
+        onkeydown="if(event.key==='Enter')doRegister()">
+      <button class="login-btn" onclick="doRegister()">Criar Conta</button>
+      <div class="login-err" id="r-err"></div>
+      <div class="login-switch">Já tenho conta. <button onclick="showPanel('login')">Entrar</button></div>
+    </div>
   </div>
 </div>
 
@@ -831,6 +869,37 @@ function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
 // ── AUTH ──────────────────────────────────────────────────────────
+function showPanel(p){
+  document.querySelectorAll('.login-panel').forEach(el=>el.classList.remove('active'));
+  document.getElementById('panel-'+p).classList.add('active');
+  document.getElementById('l-err').textContent='';
+  document.getElementById('r-err').textContent='';
+}
+async function doRegister(){
+  const nome=document.getElementById('r-nome').value.trim();
+  const email=document.getElementById('r-email').value.trim();
+  const tel=document.getElementById('r-tel').value.trim();
+  const nasc=document.getElementById('r-nasc').value;
+  const usuario=document.getElementById('r-user').value.trim();
+  const senha=document.getElementById('r-pass').value;
+  const err=document.getElementById('r-err');
+  if(!nome||!usuario||!senha){err.textContent='Nome, usuário e senha são obrigatórios.';return;}
+  if(senha.length<6){err.textContent='A senha deve ter no mínimo 6 caracteres.';return;}
+  err.textContent='';
+  const btn=document.querySelector('#panel-register .login-btn');
+  btn.textContent='Criando conta...';btn.disabled=true;
+  const res=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({nome,email,tel,nasc,usuario,senha})});
+  const data=await res.json();
+  btn.textContent='Criar Conta';btn.disabled=false;
+  if(!data.ok){err.textContent=data.msg||'Erro ao criar conta.';return;}
+  USER=data.user;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('tb-user').textContent=USER.nome.split(' ')[0];
+  document.getElementById('tb-avatar').textContent=iniciais(USER.nome);
+  applyRole();await loadAll();navTo('dashboard');
+}
 async function doLogin(){
   const usuario=document.getElementById('l-user').value.trim();
   const senha=document.getElementById('l-pass').value;

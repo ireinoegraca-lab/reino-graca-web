@@ -587,9 +587,26 @@ PERFIS_PADRAO = [
      'p_financeiro':False,'p_usuarios':False,'p_perfis':False,'pode_aprovar':False},
 ]
 
+def migrate_columns():
+    """Adiciona colunas novas em tabelas existentes sem destruir dados."""
+    with app.app_context():
+        conn = db.engine.connect()
+        def add_col(table, col, definition):
+            try:
+                conn.execute(db.text(f'ALTER TABLE {table} ADD COLUMN {col} {definition}'))
+                conn.commit()
+                print(f'Coluna {table}.{col} adicionada.')
+            except Exception:
+                conn.rollback()
+        add_col('usuarios', 'status',    "VARCHAR(20) DEFAULT 'ativo'")
+        add_col('usuarios', 'perfil_id', 'INTEGER REFERENCES perfis(id)')
+        conn.close()
+
 def init_db():
     with app.app_context():
         db.create_all()
+        # Migra colunas novas em tabelas existentes
+        migrate_columns()
         # Seed perfis padrão
         for pd in PERFIS_PADRAO:
             if not Perfil.query.filter_by(nome=pd['nome']).first():

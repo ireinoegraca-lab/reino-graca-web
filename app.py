@@ -1,7 +1,7 @@
 import os, base64, io
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from models import db, Usuario, Membro, Ministerio, Evento, Musica, Setlist, SetlistItem, Financeiro, MuralPost
+from models import db, Perfil, Usuario, Membro, Ministerio, Evento, Musica, Setlist, SetlistItem, Financeiro, MuralPost
 from datetime import datetime, date
 
 app = Flask(__name__)
@@ -17,8 +17,19 @@ login_manager.login_view = 'index'
 @login_manager.user_loader
 def load_user(uid): return Usuario.query.get(int(uid))
 
-def is_admin(): return current_user.is_authenticated and current_user.role == 'admin'
-def can_manage(mid): return is_admin() or (current_user.role=='lider' and current_user.ministerio_id==mid)
+def has_perm(p):
+    if not current_user.is_authenticated: return False
+    if current_user.status != 'ativo': return False
+    perms = current_user.get_perms()
+    return bool(perms.get(p, False))
+
+def is_admin(): return has_perm('p_usuarios')
+def can_manage(mid): return is_admin() or (current_user.is_authenticated and current_user.ministerio_id==mid and has_perm('p_ministerios'))
+
+def serialize_usuario(u):
+    return {'id':u.id,'nome':u.nome,'usuario':u.usuario,'role':u.role,'status':u.status or 'ativo',
+            'perfil_id':u.perfil_id,'perfil_nome':u.perfil.nome if u.perfil else u.role,
+            'ministerio_id':u.ministerio_id,'perms':u.get_perms()}
 def serialize_membro(m):
     return {'id':m.id,'nome':m.nome,'nasc':m.nasc or '','tel':m.tel or '','email':m.email or '',
             'profissao':m.profissao or '','status':m.status or 'Ativo','bairro':m.bairro or '',
@@ -57,30 +68,36 @@ def api_login():
     u = Usuario.query.filter_by(usuario=d.get('usuario','').lower()).first()
     if not u or not u.check_senha(d.get('senha','')):
         return jsonify({'ok':False,'msg':'Usuário ou senha incorretos'}), 401
+    if u.status == 'bloqueado':
+        return jsonify({'ok':False,'msg':'Conta bloqueada. Fale com o administrador.'}), 403
+    if u.status == 'pendente':
+        return jsonify({'ok':False,'msg':'Cadastro aguardando aprovação do administrador.'}), 403
     login_user(u, remember=True)
-    return jsonify({'ok':True,'user':{'id':u.id,'nome':u.nome,'role':u.role,'ministerio_id':u.ministerio_id}})
+    return jsonify({'ok':True,'user':{'id':u.id,'nome':u.nome,'role':u.role,'status':u.status,
+                                      'ministerio_id':u.ministerio_id,'perfil_id':u.perfil_id,'perms':u.get_perms()}})
 
 @app.route('/api/register', methods=['POST'])
 def api_register():
     d = request.json or {}
-    nome   = (d.get('nome') or '').strip()
-    email  = (d.get('email') or '').strip().lower()
-    tel    = (d.get('tel') or '').strip()
-    nasc   = (d.get('nasc') or '').strip()
+    nome    = (d.get('nome') or '').strip()
+    email   = (d.get('email') or '').strip().lower()
+    tel     = (d.get('tel') or '').strip()
+    nasc    = (d.get('nasc') or '').strip()
     usuario = (d.get('usuario') or '').strip().lower()
-    senha  = d.get('senha') or ''
+    senha   = d.get('senha') or ''
     if not nome or not usuario or not senha:
         return jsonify({'ok':False,'msg':'Nome, usuário e senha são obrigatórios'}), 400
     if Usuario.query.filter_by(usuario=usuario).first():
         return jsonify({'ok':False,'msg':'Usuário já existe. Escolha outro nome de usuário.'}), 409
-    u = Usuario(nome=nome, usuario=usuario, role='membro')
+    perfil_membro = Perfil.query.filter_by(nome='Membro').first()
+    u = Usuario(nome=nome, usuario=usuario, role='membro', status='pendente',
+                perfil_id=perfil_membro.id if perfil_membro else None)
     u.set_senha(senha)
     db.session.add(u)
     m = Membro(nome=nome, email=email, tel=tel, nasc=nasc or None, status='Ativo')
     db.session.add(m)
     db.session.commit()
-    login_user(u, remember=True)
-    return jsonify({'ok':True,'user':{'id':u.id,'nome':u.nome,'role':u.role,'ministerio_id':u.ministerio_id}})
+    return jsonify({'ok':True,'pendente':True,'msg':'Cadastro enviado! Aguarde a aprovação do administrador.'})
 
 @app.route('/api/logout', methods=['POST'])
 @login_required
@@ -93,7 +110,8 @@ def api_me():
     if not current_user.is_authenticated:
         return jsonify({'ok':False}), 401
     u = current_user
-    return jsonify({'ok':True,'user':{'id':u.id,'nome':u.nome,'role':u.role,'ministerio_id':u.ministerio_id}})
+    return jsonify({'ok':True,'user':{'id':u.id,'nome':u.nome,'role':u.role,'status':u.status,
+                                      'ministerio_id':u.ministerio_id,'perfil_id':u.perfil_id,'perms':u.get_perms()}})
 
 # ── MEMBROS ───────────────────────────────────────────────────────
 @app.route('/api/membros')
@@ -375,12 +393,59 @@ def del_post(pid):
     db.session.delete(p); db.session.commit()
     return jsonify({'ok':True})
 
+# ── PERFIS ────────────────────────────────────────────────────────
+@app.route('/api/perfis')
+@login_required
+def get_perfis():
+    return jsonify([p.to_dict() for p in Perfil.query.order_by(Perfil.id).all()])
+
+@app.route('/api/perfis', methods=['POST'])
+@login_required
+def add_perfil():
+    if not has_perm('p_perfis'): return jsonify({'ok':False}), 403
+    d = request.json
+    p = Perfil(nome=d['nome'], cor=d.get('cor','#e11d2a'),
+               p_membros=d.get('p_membros',False), p_ministerios=d.get('p_ministerios',False),
+               p_agenda=d.get('p_agenda',True), p_louvor=d.get('p_louvor',False),
+               p_mural=d.get('p_mural',True), p_financeiro=d.get('p_financeiro',False),
+               p_usuarios=d.get('p_usuarios',False), p_perfis=d.get('p_perfis',False),
+               pode_aprovar=d.get('pode_aprovar',False))
+    db.session.add(p); db.session.commit()
+    return jsonify({'ok':True,'perfil':p.to_dict()})
+
+@app.route('/api/perfis/<int:pid>', methods=['PUT'])
+@login_required
+def update_perfil(pid):
+    if not has_perm('p_perfis'): return jsonify({'ok':False}), 403
+    p = Perfil.query.get_or_404(pid)
+    if p.builtin: return jsonify({'ok':False,'msg':'Perfis padrão não podem ser editados'}), 400
+    d = request.json
+    for k in ['nome','cor','p_membros','p_ministerios','p_agenda','p_louvor','p_mural','p_financeiro','p_usuarios','p_perfis','pode_aprovar']:
+        if k in d: setattr(p, k, d[k])
+    db.session.commit()
+    return jsonify({'ok':True,'perfil':p.to_dict()})
+
+@app.route('/api/perfis/<int:pid>', methods=['DELETE'])
+@login_required
+def del_perfil(pid):
+    if not has_perm('p_perfis'): return jsonify({'ok':False}), 403
+    p = Perfil.query.get_or_404(pid)
+    if p.builtin: return jsonify({'ok':False,'msg':'Perfis padrão não podem ser excluídos'}), 400
+    db.session.delete(p); db.session.commit()
+    return jsonify({'ok':True})
+
 # ── USUÁRIOS ──────────────────────────────────────────────────────
 @app.route('/api/usuarios')
 @login_required
 def get_usuarios():
     if not is_admin(): return jsonify({'ok':False}), 403
-    return jsonify([{'id':u.id,'nome':u.nome,'usuario':u.usuario,'role':u.role,'ministerio_id':u.ministerio_id} for u in Usuario.query.all()])
+    return jsonify([serialize_usuario(u) for u in Usuario.query.order_by(Usuario.nome).all()])
+
+@app.route('/api/usuarios/pendentes')
+@login_required
+def get_pendentes():
+    if not (is_admin() or has_perm('pode_aprovar')): return jsonify({'ok':False}), 403
+    return jsonify([serialize_usuario(u) for u in Usuario.query.filter_by(status='pendente').all()])
 
 @app.route('/api/usuarios', methods=['POST'])
 @login_required
@@ -389,10 +454,11 @@ def add_usuario():
     d = request.json
     if Usuario.query.filter_by(usuario=d['usuario'].lower()).first():
         return jsonify({'ok':False,'msg':'Usuário já existe'}), 400
-    u = Usuario(nome=d['nome'],usuario=d['usuario'].lower(),role=d.get('role','lider'),ministerio_id=d.get('ministerio_id'))
+    u = Usuario(nome=d['nome'], usuario=d['usuario'].lower(), role=d.get('role','membro'),
+                status='ativo', perfil_id=d.get('perfil_id'), ministerio_id=d.get('ministerio_id'))
     u.set_senha(d['senha'])
     db.session.add(u); db.session.commit()
-    return jsonify({'ok':True,'usuario':{'id':u.id,'nome':u.nome,'usuario':u.usuario,'role':u.role,'ministerio_id':u.ministerio_id}})
+    return jsonify({'ok':True,'usuario':serialize_usuario(u)})
 
 @app.route('/api/usuarios/<int:uid>', methods=['PUT'])
 @login_required
@@ -401,10 +467,34 @@ def update_usuario(uid):
     u = Usuario.query.get_or_404(uid); d = request.json
     if 'nome' in d: u.nome = d['nome']
     if 'role' in d: u.role = d['role']
+    if 'status' in d: u.status = d['status']
+    if 'perfil_id' in d: u.perfil_id = d['perfil_id'] or None
     if 'ministerio_id' in d: u.ministerio_id = d['ministerio_id']
     if 'senha' in d and d['senha']: u.set_senha(d['senha'])
     db.session.commit()
-    return jsonify({'ok':True})
+    return jsonify({'ok':True,'usuario':serialize_usuario(u)})
+
+@app.route('/api/usuarios/<int:uid>/aprovar', methods=['POST'])
+@login_required
+def aprovar_usuario(uid):
+    if not (is_admin() or has_perm('pode_aprovar')): return jsonify({'ok':False}), 403
+    u = Usuario.query.get_or_404(uid)
+    u.status = 'ativo'
+    if not u.perfil_id:
+        perfil = Perfil.query.filter_by(nome='Membro').first()
+        if perfil: u.perfil_id = perfil.id
+    db.session.commit()
+    return jsonify({'ok':True,'usuario':serialize_usuario(u)})
+
+@app.route('/api/usuarios/<int:uid>/bloquear', methods=['POST'])
+@login_required
+def bloquear_usuario(uid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    if uid == current_user.id: return jsonify({'ok':False,'msg':'Não pode bloquear sua própria conta'}), 400
+    u = Usuario.query.get_or_404(uid)
+    u.status = 'bloqueado' if u.status == 'ativo' else 'ativo'
+    db.session.commit()
+    return jsonify({'ok':True,'status':u.status})
 
 @app.route('/api/usuarios/<int:uid>', methods=['DELETE'])
 @login_required
@@ -476,14 +566,44 @@ def portal():
     return render_template('portal.html', dados=dados)
 
 # ── INIT DB ───────────────────────────────────────────────────────
+PERFIS_PADRAO = [
+    {'nome':'Pastor',     'cor':'#c9922a','builtin':True,
+     'p_membros':True,'p_ministerios':True,'p_agenda':True,'p_louvor':True,'p_mural':True,
+     'p_financeiro':True,'p_usuarios':True,'p_perfis':True,'pode_aprovar':True},
+    {'nome':'Administrador','cor':'#e11d2a','builtin':True,
+     'p_membros':True,'p_ministerios':True,'p_agenda':True,'p_louvor':True,'p_mural':True,
+     'p_financeiro':True,'p_usuarios':True,'p_perfis':True,'pode_aprovar':True},
+    {'nome':'Secretaria', 'cor':'#60a5fa','builtin':True,
+     'p_membros':True,'p_ministerios':True,'p_agenda':True,'p_louvor':False,'p_mural':True,
+     'p_financeiro':False,'p_usuarios':False,'p_perfis':False,'pode_aprovar':True},
+    {'nome':'Líder',      'cor':'#a78bfa','builtin':True,
+     'p_membros':True,'p_ministerios':True,'p_agenda':True,'p_louvor':True,'p_mural':True,
+     'p_financeiro':False,'p_usuarios':False,'p_perfis':False,'pode_aprovar':False},
+    {'nome':'Tesoureiro', 'cor':'#22c55e','builtin':True,
+     'p_membros':False,'p_ministerios':False,'p_agenda':True,'p_louvor':False,'p_mural':True,
+     'p_financeiro':True,'p_usuarios':False,'p_perfis':False,'pode_aprovar':False},
+    {'nome':'Membro',     'cor':'#9b9296','builtin':True,
+     'p_membros':False,'p_ministerios':False,'p_agenda':True,'p_louvor':True,'p_mural':True,
+     'p_financeiro':False,'p_usuarios':False,'p_perfis':False,'pode_aprovar':False},
+]
+
 def init_db():
     with app.app_context():
         db.create_all()
+        # Seed perfis padrão
+        for pd in PERFIS_PADRAO:
+            if not Perfil.query.filter_by(nome=pd['nome']).first():
+                db.session.add(Perfil(**pd))
+        db.session.commit()
+        # Seed usuários iniciais
         if not Usuario.query.first():
-            admin = Usuario(nome='Administrador', usuario='admin', role='admin')
+            p_admin = Perfil.query.filter_by(nome='Administrador').first()
+            admin = Usuario(nome='Administrador', usuario='admin', role='admin', status='ativo',
+                            perfil_id=p_admin.id if p_admin else None)
             admin.set_senha('admin123')
             db.session.add(admin)
-            dirceu = Usuario(nome='Dirceu Gonçalves', usuario='dirceu', role='admin')
+            dirceu = Usuario(nome='Dirceu Gonçalves', usuario='dirceu', role='admin', status='ativo',
+                             perfil_id=p_admin.id if p_admin else None)
             dirceu.set_senha('dirceu123')
             db.session.add(dirceu)
             db.session.commit()

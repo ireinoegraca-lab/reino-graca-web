@@ -455,13 +455,34 @@ input,select,textarea,button{font-family:inherit}
     <!-- USUÁRIOS -->
     <div class="page" id="page-usuarios">
       <div class="page-header">
-        <div class="page-title">Usuários</div>
-        <div class="page-sub">Contas de acesso e permissões</div>
+        <div class="page-title">Usuários & Perfis</div>
+        <div class="page-sub">Contas de acesso e níveis de permissão</div>
       </div>
-      <div class="toolbar">
-        <button class="btn btn-primary" onclick="openModalUsuario()">+ Usuário</button>
+      <!-- Abas -->
+      <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--line);padding-bottom:0">
+        <button id="tab-usuarios-btn" onclick="switchUsuariosTab('usuarios')"
+          style="background:none;border:none;color:var(--brand2);font-weight:700;font-size:.85rem;padding:8px 16px;cursor:pointer;border-bottom:2px solid var(--brand2)">👥 Usuários</button>
+        <button id="tab-perfis-btn" onclick="switchUsuariosTab('perfis')"
+          style="background:none;border:none;color:var(--muted);font-weight:600;font-size:.85rem;padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent">🎭 Perfis</button>
       </div>
-      <div id="usuarios-list"></div>
+      <!-- Aba Usuários -->
+      <div id="tab-usuarios">
+        <div class="toolbar">
+          <button class="btn btn-primary" onclick="openModalUsuario()">+ Usuário</button>
+        </div>
+        <div id="pendentes-box" style="display:none;background:rgba(201,146,42,.1);border:1px solid rgba(201,146,42,.3);border-radius:12px;padding:14px;margin-bottom:12px">
+          <div style="font-weight:700;font-size:.85rem;color:var(--gold);margin-bottom:8px">⏳ Aguardando aprovação</div>
+          <div id="pendentes-list"></div>
+        </div>
+        <div id="usuarios-list"></div>
+      </div>
+      <!-- Aba Perfis -->
+      <div id="tab-perfis" style="display:none">
+        <div class="toolbar">
+          <button class="btn btn-primary" onclick="openModalPerfil()">+ Perfil</button>
+        </div>
+        <div id="perfis-list"></div>
+      </div>
     </div>
 
   </div><!-- /main -->
@@ -817,15 +838,25 @@ input,select,textarea,button{font-family:inherit}
           <input class="form-input" id="usr-senha" type="password" placeholder="Senha">
         </div>
       </div>
+      <div class="form-group">
+        <label class="form-label">Perfil de acesso</label>
+        <select class="form-input" id="usr-perfil">
+          <option value="">-- selecione um perfil --</option>
+        </select>
+      </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Perfil</label>
-          <select class="form-input" id="usr-role" onchange="toggleMinSel()">
-            <option value="admin">🔴 Administrador</option>
-            <option value="lider">🔵 Líder de Ministério</option>
+          <label class="form-label">Role (legado)</label>
+          <select class="form-input" id="usr-role">
+            <option value="membro">Membro</option>
+            <option value="lider">Líder</option>
+            <option value="secretaria">Secretaria</option>
+            <option value="tesoureiro">Tesoureiro</option>
+            <option value="pastor">Pastor</option>
+            <option value="admin">Administrador</option>
           </select>
         </div>
-        <div class="form-group" id="usr-min-group">
+        <div class="form-group">
           <label class="form-label">Ministério</label>
           <select class="form-input" id="usr-ministerio"></select>
         </div>
@@ -833,6 +864,47 @@ input,select,textarea,button{font-family:inherit}
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button class="btn btn-outline" onclick="closeModal('modal-usuario')">Cancelar</button>
         <button class="btn btn-primary" onclick="salvarUsuario()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Perfil -->
+<div class="modal-overlay" id="modal-perfil" onclick="if(event.target===this)closeModal('modal-perfil')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-perfil-title">Novo Perfil</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-perfil')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="perfil-id">
+      <div class="form-row">
+        <div class="form-group" style="flex:2">
+          <label class="form-label">Nome do perfil *</label>
+          <input class="form-input" id="perfil-nome" placeholder="Ex: Diácono, Coordenador...">
+        </div>
+        <div class="form-group" style="flex:0 0 80px">
+          <label class="form-label">Cor</label>
+          <input class="form-input" id="perfil-cor" type="color" value="#e11d2a" style="padding:6px;height:42px">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Permissões de acesso</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="perm-p_membros"> Membros</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="perm-p_ministerios"> Ministérios</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="perm-p_agenda" checked> Agenda</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="perm-p_louvor"> Louvor</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="perm-p_mural" checked> Mural</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="perm-p_financeiro"> Financeiro</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="perm-p_usuarios"> Usuários</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="perm-p_perfis"> Gerenciar Perfis</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer;grid-column:span 2"><input type="checkbox" id="perm-pode_aprovar"> Aprovar cadastros pendentes</label>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-outline" onclick="closeModal('modal-perfil')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarPerfil()">Salvar Perfil</button>
       </div>
     </div>
   </div>
@@ -855,8 +927,9 @@ function iniciais(n){return(n||'').split(' ').filter(Boolean).slice(0,2).map(p=>
 function fmtData(iso){if(!iso)return['—','—'];const[,m,d]=iso.split('-');const ms=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];return[d,ms[parseInt(m)-1]];}
 function fmtMoeda(v){return'R$ '+(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});}
 function fmtDataBr(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return`${d}/${m}/${y}`;}
-function isAdmin(){return USER&&USER.role==='admin';}
-function canManage(mid){return isAdmin()||(USER&&USER.role==='lider'&&USER.ministerio_id==mid);}
+function hasPerm(p){return USER&&USER.perms&&USER.perms[p];}
+function isAdmin(){return hasPerm('p_usuarios');}
+function canManage(mid){return isAdmin()||(hasPerm('p_ministerios')&&USER&&USER.ministerio_id==mid);}
 
 function toast(msg,type='info'){
   const w=document.getElementById('toast-wrap');
@@ -893,6 +966,13 @@ async function doRegister(){
   const data=await res.json();
   btn.textContent='Criar Conta';btn.disabled=false;
   if(!data.ok){err.textContent=data.msg||'Erro ao criar conta.';return;}
+  if(data.pendente){
+    err.style.color='var(--gold)';
+    err.textContent='✅ '+data.msg;
+    btn.style.display='none';
+    return;
+  }
+  // auto-login (caso futuro sem aprovação)
   USER=data.user;
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='flex';
@@ -922,11 +1002,38 @@ async function doLogout(){
 }
 
 function applyRole(){
-  document.querySelectorAll('.admin-only').forEach(el=>{el.style.display=isAdmin()?'':'none';});
-  document.getElementById('btn-novo-membro').style.display=isAdmin()?'':'none';
-  document.getElementById('btn-importar-membro').style.display=isAdmin()?'':'none';
-  document.getElementById('btn-novo-min').style.display=isAdmin()?'':'none';
-  document.getElementById('btn-novo-ev').style.display=isAdmin()?'':'none';
+  const p = USER&&USER.perms || {};
+  // sidebar/nav visibilidade por permissão
+  document.querySelectorAll('[data-page="membros"]').forEach(el=>el.style.display=p.p_membros?'':'none');
+  document.querySelectorAll('[data-page="ministerios"]').forEach(el=>el.style.display=p.p_ministerios?'':'none');
+  document.querySelectorAll('[data-page="louvor"]').forEach(el=>el.style.display=p.p_louvor?'':'none');
+  document.querySelectorAll('[data-page="financeiro"]').forEach(el=>el.style.display=p.p_financeiro?'':'none');
+  document.querySelectorAll('[data-page="usuarios"]').forEach(el=>el.style.display=p.p_usuarios?'':'none');
+  document.querySelectorAll('.admin-only').forEach(el=>el.style.display=isAdmin()?'':'none');
+  // botões de ação
+  const hide=(id,show)=>{const el=document.getElementById(id);if(el)el.style.display=show?'':'none';};
+  hide('btn-novo-membro', p.p_membros);
+  hide('btn-importar-membro', p.p_membros);
+  hide('btn-novo-min', p.p_ministerios);
+  hide('btn-novo-ev', p.p_agenda);
+  // badge de pendentes
+  verificarPendentes();
+}
+
+async function verificarPendentes(){
+  if(!hasPerm('p_usuarios')&&!hasPerm('pode_aprovar')) return;
+  try{
+    const d=await api('/api/usuarios/pendentes');
+    const n=Array.isArray(d)?d.length:0;
+    let badge=document.getElementById('badge-pendentes');
+    if(n>0){
+      if(!badge){badge=document.createElement('span');badge.id='badge-pendentes';
+        badge.style.cssText='background:#e11d2a;color:#fff;border-radius:10px;font-size:.65rem;padding:1px 6px;margin-left:6px;font-weight:700';
+        const el=document.querySelector('[data-page="usuarios"]');
+        if(el)el.appendChild(badge);}
+      badge.textContent=n;
+    } else if(badge) badge.remove();
+  }catch(e){}
 }
 
 async function checkSession(){
@@ -942,16 +1049,15 @@ async function api(url,opts={}){
 }
 
 async function loadAll(){
-  const [membros,ministerios,eventos,musicas,setlists,mural]=await Promise.all([
-    api('/api/membros'),api('/api/ministerios'),api('/api/eventos'),
-    api('/api/musicas'),api('/api/setlists'),api('/api/mural')
-  ]);
+  const perms=USER&&USER.perms||{};
+  const calls=[api('/api/membros'),api('/api/ministerios'),api('/api/eventos'),
+    api('/api/musicas'),api('/api/setlists'),api('/api/mural'),api('/api/perfis')];
+  const [membros,ministerios,eventos,musicas,setlists,mural,perfis]=await Promise.all(calls);
   DATA.membros=membros;DATA.ministerios=ministerios;DATA.eventos=eventos;
   DATA.musicas=musicas;DATA.setlists=setlists;DATA.mural=mural;
-  if(isAdmin()){
-    const [fin,usr]=await Promise.all([api('/api/financeiro'),api('/api/usuarios')]);
-    DATA.financeiro=fin;DATA.usuarios=usr;
-  }
+  DATA_PERFIS=Array.isArray(perfis)?perfis:[];
+  if(perms.p_financeiro){const fin=await api('/api/financeiro');DATA.financeiro=fin;}
+  if(perms.p_usuarios){const [usr]=await Promise.all([api('/api/usuarios')]);DATA.usuarios=usr;}
 }
 
 // ── NAV ───────────────────────────────────────────────────────────
@@ -1560,46 +1666,109 @@ async function delFin(id){
 }
 
 // ── USUÁRIOS ──────────────────────────────────────────────────────
-function renderUsuarios(){
+let DATA_PERFIS=[];
+
+function switchUsuariosTab(tab){
+  document.getElementById('tab-usuarios').style.display=tab==='usuarios'?'':'none';
+  document.getElementById('tab-perfis').style.display=tab==='perfis'?'':'none';
+  document.getElementById('tab-usuarios-btn').style.cssText='background:none;border:none;color:var(--brand2);font-weight:700;font-size:.85rem;padding:8px 16px;cursor:pointer;border-bottom:2px solid '+(tab==='usuarios'?'var(--brand2)':'transparent');
+  document.getElementById('tab-perfis-btn').style.cssText='background:none;border:none;color:'+(tab==='perfis'?'var(--brand2)':'var(--muted)')+';font-weight:'+(tab==='perfis'?'700':'600')+';font-size:.85rem;padding:8px 16px;cursor:pointer;border-bottom:2px solid '+(tab==='perfis'?'var(--brand2)':'transparent');
+  if(tab==='perfis') renderPerfis();
+}
+
+function statusBadge(s){
+  const map={'ativo':'badge-ativo','pendente':'badge-pendente','bloqueado':'badge-bloqueado'};
+  const lbl={'ativo':'Ativo','pendente':'Pendente','bloqueado':'Bloqueado'};
+  return `<span class="badge" style="font-size:.68rem;padding:2px 8px;border-radius:8px;background:${s==='ativo'?'rgba(34,197,94,.15)':s==='pendente'?'rgba(201,146,42,.15)':'rgba(225,29,42,.15)'};color:${s==='ativo'?'#22c55e':s==='pendente'?'#c9922a':'#ff6b6b'}">${lbl[s]||s}</span>`;
+}
+
+async function renderUsuarios(){
+  // pendentes
+  const pends=await api('/api/usuarios/pendentes').catch(()=>[]);
+  const pendBox=document.getElementById('pendentes-box');
+  const pendList=document.getElementById('pendentes-list');
+  if(pends&&pends.length){
+    pendBox.style.display='';
+    pendList.innerHTML=pends.map(u=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div class="list-avatar" style="width:32px;height:32px;font-size:.7rem">${iniciais(u.nome)}</div>
+      <div style="flex:1"><div style="font-size:.85rem;font-weight:600">${u.nome}</div><div style="font-size:.72rem;color:var(--muted)">@${u.usuario}</div></div>
+      <button class="btn btn-sm" style="background:rgba(34,197,94,.2);color:#22c55e;border:none" onclick="aprovarUsuario(${u.id})">✓ Aprovar</button>
+      <button class="btn btn-sm btn-ghost" onclick="delUsuario(${u.id})">✕</button>
+    </div>`).join('');
+  } else { pendBox.style.display='none'; }
+
   const el=document.getElementById('usuarios-list');
-  if(!DATA.usuarios.length){el.innerHTML='<div class="empty"><div class="empty-icon">🔑</div><p>Nenhum usuário</p></div>';return;}
-  el.innerHTML=DATA.usuarios.map(u=>`<div class="list-item">
+  const ativos=(DATA.usuarios||[]).filter(u=>u.status!=='pendente');
+  if(!ativos.length){el.innerHTML='<div class="empty"><div class="empty-icon">🔑</div><p>Nenhum usuário</p></div>';return;}
+  el.innerHTML=ativos.map(u=>`<div class="list-item">
     <div class="list-avatar">${iniciais(u.nome)}</div>
-    <div class="list-info"><div class="list-nome">${u.nome}</div><div class="list-sub">@${u.usuario}</div></div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <span class="badge ${u.role==='admin'?'badge-admin':'badge-ministerio'}">${u.role==='admin'?'Admin':'Líder'}</span>
+    <div class="list-info"><div class="list-nome">${u.nome}</div><div class="list-sub">@${u.usuario} · ${u.perfil_nome||u.role}</div></div>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+      ${statusBadge(u.status||'ativo')}
+      <button class="btn btn-ghost btn-sm" onclick="toggleBloquear(${u.id})">${u.status==='bloqueado'?'🔓':'🔒'}</button>
       <button class="btn btn-ghost btn-sm" onclick="openModalUsuario(${u.id})">✏️</button>
       <button class="btn btn-ghost btn-sm" onclick="delUsuario(${u.id})">🗑️</button>
     </div>
   </div>`).join('');
 }
 
+async function aprovarUsuario(id){
+  const res=await api(`/api/usuarios/${id}/aprovar`,{method:'POST'});
+  if(!res.ok){toast(res.msg||'Erro','error');return;}
+  DATA.usuarios=await api('/api/usuarios');
+  renderUsuarios();toast('Usuário aprovado!','success');
+  verificarPendentes();
+}
+
+async function toggleBloquear(id){
+  const u=DATA.usuarios.find(x=>x.id===id);
+  if(!u)return;
+  const acao=u.status==='bloqueado'?'desbloquear':'bloquear';
+  if(!confirm(`${acao.charAt(0).toUpperCase()+acao.slice(1)} ${u.nome}?`))return;
+  const res=await api(`/api/usuarios/${id}/bloquear`,{method:'POST'});
+  if(!res.ok){toast(res.msg||'Erro','error');return;}
+  DATA.usuarios=await api('/api/usuarios');
+  renderUsuarios();toast(`${u.nome} ${res.status==='bloqueado'?'bloqueado':'desbloqueado'}!`,'success');
+}
+
 function openModalUsuario(id){
   document.getElementById('modal-usr-title').textContent=id?'Editar Usuário':'Novo Usuário';
   document.getElementById('usr-id').value=id||'';
-  const sel=document.getElementById('usr-ministerio');
-  sel.innerHTML=DATA.ministerios.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
-  if(id){const u=DATA.usuarios.find(x=>x.id===id)||{};document.getElementById('usr-nome').value=u.nome||'';document.getElementById('usr-login').value=u.usuario||'';document.getElementById('usr-senha').value='';document.getElementById('usr-role').value=u.role||'lider';sel.value=u.ministerio_id||'';toggleMinSel();}
-  else{['usr-nome','usr-login','usr-senha'].forEach(i=>document.getElementById(i).value='');document.getElementById('usr-role').value='lider';toggleMinSel();}
+  const selMin=document.getElementById('usr-ministerio');
+  selMin.innerHTML='<option value="">-- nenhum --</option>'+DATA.ministerios.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  const selPerfil=document.getElementById('usr-perfil');
+  if(selPerfil) selPerfil.innerHTML='<option value="">-- padrão do role --</option>'+(DATA_PERFIS||[]).map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
+  if(id){
+    const u=DATA.usuarios.find(x=>x.id===id)||{};
+    document.getElementById('usr-nome').value=u.nome||'';
+    document.getElementById('usr-login').value=u.usuario||'';
+    document.getElementById('usr-senha').value='';
+    document.getElementById('usr-role').value=u.role||'membro';
+    selMin.value=u.ministerio_id||'';
+    if(selPerfil) selPerfil.value=u.perfil_id||'';
+  } else {
+    ['usr-nome','usr-login','usr-senha'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('usr-role').value='membro';
+    if(selPerfil) selPerfil.value='';
+  }
   openModal('modal-usuario');
-}
-
-function toggleMinSel(){
-  const role=document.getElementById('usr-role').value;
-  document.getElementById('usr-min-group').style.display=role==='lider'?'':'none';
 }
 
 async function salvarUsuario(){
   const id=document.getElementById('usr-id').value;
-  const nome=document.getElementById('usr-nome').value.trim(),login=document.getElementById('usr-login').value.trim();
-  const senha=document.getElementById('usr-senha').value,role=document.getElementById('usr-role').value;
+  const nome=document.getElementById('usr-nome').value.trim();
+  const login=document.getElementById('usr-login').value.trim();
+  const senha=document.getElementById('usr-senha').value;
+  const role=document.getElementById('usr-role').value;
+  const perfil_id=parseInt(document.getElementById('usr-perfil')?.value)||null;
+  const ministerio_id=parseInt(document.getElementById('usr-ministerio').value)||null;
   if(!nome||!login){toast('Preencha nome e usuário','error');return;}
   if(!id&&!senha){toast('Informe a senha','error');return;}
-  const ministerio_id=role==='lider'?parseInt(document.getElementById('usr-ministerio').value)||null:null;
-  const body={nome,usuario:login,senha,role,ministerio_id};
+  const body={nome,usuario:login,role,ministerio_id,perfil_id};
+  if(senha) body.senha=senha;
   const res=await api(id?`/api/usuarios/${id}`:'/api/usuarios',{method:id?'PUT':'POST',body:JSON.stringify(body)});
   if(!res.ok){toast(res.msg||'Erro','error');return;}
-  const [usr]=await Promise.all([api('/api/usuarios')]);DATA.usuarios=usr;
+  DATA.usuarios=await api('/api/usuarios');
   closeModal('modal-usuario');renderUsuarios();toast('Usuário salvo!','success');
 }
 
@@ -1608,6 +1777,61 @@ async function delUsuario(id){
   const res=await api(`/api/usuarios/${id}`,{method:'DELETE'});
   if(!res.ok){toast(res.msg||'Erro','error');return;}
   DATA.usuarios=DATA.usuarios.filter(u=>u.id!==id);renderUsuarios();toast('Excluído','success');
+}
+
+// ── PERFIS ────────────────────────────────────────────────────────
+const PERMS_LABELS={p_membros:'Membros',p_ministerios:'Ministérios',p_agenda:'Agenda',
+  p_louvor:'Louvor',p_mural:'Mural',p_financeiro:'Financeiro',p_usuarios:'Usuários',
+  p_perfis:'Perfis',pode_aprovar:'Aprovar cadastros'};
+
+async function renderPerfis(){
+  DATA_PERFIS=await api('/api/perfis').catch(()=>[]);
+  const el=document.getElementById('perfis-list');
+  if(!DATA_PERFIS.length){el.innerHTML='<div class="empty"><p>Nenhum perfil</p></div>';return;}
+  el.innerHTML=DATA_PERFIS.map(p=>{
+    const tags=Object.entries(PERMS_LABELS).filter(([k])=>p[k]).map(([,v])=>`<span style="background:rgba(255,255,255,.08);border-radius:8px;padding:2px 7px;font-size:.68rem;color:var(--muted)">${v}</span>`).join('');
+    return `<div class="card" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="width:10px;height:10px;border-radius:50%;background:${p.cor};flex-shrink:0"></div>
+        <div style="font-weight:700;flex:1">${p.nome}</div>
+        ${p.builtin?'<span style="font-size:.68rem;color:var(--muted);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:8px">Padrão</span>':''}
+        ${!p.builtin?`<button class="btn btn-ghost btn-sm" onclick="openModalPerfil(${p.id})">✏️</button><button class="btn btn-ghost btn-sm" onclick="delPerfil(${p.id})">🗑️</button>`:''}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">${tags||'<span style="font-size:.75rem;color:var(--muted)">Sem permissões</span>'}</div>
+    </div>`;
+  }).join('');
+}
+
+function openModalPerfil(id){
+  const p=id?DATA_PERFIS.find(x=>x.id===id):null;
+  document.getElementById('modal-perfil-title').textContent=id?'Editar Perfil':'Novo Perfil';
+  document.getElementById('perfil-id').value=id||'';
+  document.getElementById('perfil-nome').value=p?p.nome:'';
+  document.getElementById('perfil-cor').value=p?p.cor:'#e11d2a';
+  Object.keys(PERMS_LABELS).forEach(k=>{
+    const cb=document.getElementById('perm-'+k);
+    if(cb) cb.checked=p?!!p[k]:false;
+  });
+  openModal('modal-perfil');
+}
+
+async function salvarPerfil(){
+  const id=document.getElementById('perfil-id').value;
+  const nome=document.getElementById('perfil-nome').value.trim();
+  const cor=document.getElementById('perfil-cor').value;
+  if(!nome){toast('Informe o nome do perfil','error');return;}
+  const body={nome,cor};
+  Object.keys(PERMS_LABELS).forEach(k=>{body[k]=document.getElementById('perm-'+k)?.checked||false;});
+  const res=await api(id?`/api/perfis/${id}`:'/api/perfis',{method:id?'PUT':'POST',body:JSON.stringify(body)});
+  if(!res.ok){toast(res.msg||'Erro','error');return;}
+  closeModal('modal-perfil');renderPerfis();toast('Perfil salvo!','success');
+}
+
+async function delPerfil(id){
+  if(!confirm('Excluir perfil?'))return;
+  const res=await api(`/api/perfis/${id}`,{method:'DELETE'});
+  if(!res.ok){toast(res.msg||'Erro','error');return;}
+  renderPerfis();toast('Perfil excluído','success');
 }
 
 // ── ASSISTENTE FLUTUANTE ─────────────────────────────────────────

@@ -5,17 +5,53 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
+class Perfil(db.Model):
+    __tablename__ = 'perfis'
+    id            = db.Column(db.Integer, primary_key=True)
+    nome          = db.Column(db.String(60), nullable=False)
+    cor           = db.Column(db.String(7), default='#e11d2a')
+    builtin       = db.Column(db.Boolean, default=False)
+    p_membros     = db.Column(db.Boolean, default=False)
+    p_ministerios = db.Column(db.Boolean, default=False)
+    p_agenda      = db.Column(db.Boolean, default=True)
+    p_louvor      = db.Column(db.Boolean, default=False)
+    p_mural       = db.Column(db.Boolean, default=True)
+    p_financeiro  = db.Column(db.Boolean, default=False)
+    p_usuarios    = db.Column(db.Boolean, default=False)
+    p_perfis      = db.Column(db.Boolean, default=False)
+    pode_aprovar  = db.Column(db.Boolean, default=False)
+    usuarios      = db.relationship('Usuario', backref='perfil', lazy=True)
+
+    def to_dict(self):
+        return {'id':self.id,'nome':self.nome,'cor':self.cor,'builtin':self.builtin,
+                'p_membros':self.p_membros,'p_ministerios':self.p_ministerios,
+                'p_agenda':self.p_agenda,'p_louvor':self.p_louvor,'p_mural':self.p_mural,
+                'p_financeiro':self.p_financeiro,'p_usuarios':self.p_usuarios,
+                'p_perfis':self.p_perfis,'pode_aprovar':self.pode_aprovar}
+
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'usuarios'
-    id         = db.Column(db.Integer, primary_key=True)
-    nome       = db.Column(db.String(120), nullable=False)
-    usuario    = db.Column(db.String(60), unique=True, nullable=False)
-    senha_hash = db.Column(db.String(256), nullable=False)
-    role       = db.Column(db.String(20), default='lider')  # admin | lider
+    id            = db.Column(db.Integer, primary_key=True)
+    nome          = db.Column(db.String(120), nullable=False)
+    usuario       = db.Column(db.String(60), unique=True, nullable=False)
+    senha_hash    = db.Column(db.String(256), nullable=False)
+    role          = db.Column(db.String(20), default='membro')
+    status        = db.Column(db.String(20), default='ativo')   # ativo | pendente | bloqueado
+    perfil_id     = db.Column(db.Integer, db.ForeignKey('perfis.id'), nullable=True)
     ministerio_id = db.Column(db.Integer, db.ForeignKey('ministerios.id'), nullable=True)
 
     def set_senha(self, s): self.senha_hash = generate_password_hash(s)
     def check_senha(self, s): return check_password_hash(self.senha_hash, s)
+
+    def get_perms(self):
+        if self.perfil:
+            return self.perfil.to_dict()
+        # fallback para role legado
+        full = dict(p_membros=True,p_ministerios=True,p_agenda=True,p_louvor=True,
+                    p_mural=True,p_financeiro=True,p_usuarios=True,p_perfis=True,pode_aprovar=True)
+        membro = dict(p_membros=False,p_ministerios=False,p_agenda=True,p_louvor=True,
+                      p_mural=True,p_financeiro=False,p_usuarios=False,p_perfis=False,pode_aprovar=False)
+        return full if self.role in ('admin','pastor') else membro
 
 class Membro(db.Model):
     __tablename__ = 'membros'
@@ -77,7 +113,7 @@ class SetlistItem(db.Model):
 class Financeiro(db.Model):
     __tablename__ = 'financeiro'
     id         = db.Column(db.Integer, primary_key=True)
-    tipo       = db.Column(db.String(20), nullable=False)  # entrada | saida
+    tipo       = db.Column(db.String(20), nullable=False)
     categoria  = db.Column(db.String(60))
     valor      = db.Column(db.Float, nullable=False)
     data       = db.Column(db.String(10), nullable=False)

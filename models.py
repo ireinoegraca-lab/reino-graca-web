@@ -123,6 +123,12 @@ class Financeiro(db.Model):
     forma      = db.Column(db.String(30))
     membro     = db.relationship('Membro')
 
+class Config(db.Model):
+    __tablename__ = 'config'
+    id    = db.Column(db.Integer, primary_key=True)
+    chave = db.Column(db.String(60), unique=True, nullable=False)
+    valor = db.Column(db.Text)
+
 class MuralPost(db.Model):
     __tablename__ = 'mural'
     id           = db.Column(db.Integer, primary_key=True)

@@ -290,6 +290,7 @@ input,select,textarea,button{font-family:inherit}
     <div class="sidebar-section admin-only">Administração</div>
     <div class="sidebar-item admin-only" onclick="navTo('financeiro')" data-page="financeiro"><span class="ni">💰</span> Financeiro</div>
     <div class="sidebar-item admin-only" onclick="navTo('usuarios')" data-page="usuarios"><span class="ni">🔑</span> Usuários</div>
+    <div class="sidebar-item admin-only" onclick="navTo('configuracoes')" data-page="configuracoes"><span class="ni">⚙️</span> Configurações</div>
     <div class="sidebar-sep"></div>
     <div class="sidebar-item" onclick="doLogout()" style="color:var(--brand2)"><span class="ni">🚪</span> Sair</div>
   </div>
@@ -315,6 +316,39 @@ input,select,textarea,button{font-family:inherit}
       <div class="card">
         <div class="card-title">📌 Mural recente</div>
         <div id="dash-mural"></div>
+      </div>
+      <!-- FALAR COM O PASTOR -->
+      <div class="card" style="background:linear-gradient(135deg,#1a472a 0%,#2d6a4f 100%);border:none;cursor:pointer;text-align:center;padding:28px 20px;" onclick="abrirFalarPastor()">
+        <div style="font-size:2.2rem;margin-bottom:8px">📞</div>
+        <div style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:4px">Falar com o Pastor</div>
+        <div style="font-size:.85rem;color:rgba(255,255,255,.75)">Solicitar reunião via WhatsApp</div>
+      </div>
+    </div>
+
+    <!-- CONFIGURAÇÕES (admin-only) -->
+    <div class="page" id="page-configuracoes">
+      <div class="page-header">
+        <div class="page-title">Configurações</div>
+        <div class="page-sub">Configurações do sistema</div>
+      </div>
+      <div class="card" style="max-width:520px">
+        <div class="card-title">📞 Contatos da Igreja</div>
+        <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px">
+          <label style="font-size:.85rem;color:var(--text2)">
+            WhatsApp da Secretaria (somente números, ex: 27999991234)
+            <input id="cfg-whatsapp" class="form-control" placeholder="27999991234" style="margin-top:4px">
+          </label>
+          <label style="font-size:.85rem;color:var(--text2)">
+            Nome do Pastor
+            <input id="cfg-pastor" class="form-control" placeholder="Pastor João" style="margin-top:4px">
+          </label>
+          <label style="font-size:.85rem;color:var(--text2)">
+            Nome da Igreja
+            <input id="cfg-igreja" class="form-control" placeholder="Reino &amp; Graça" style="margin-top:4px">
+          </label>
+          <button class="btn btn-primary" onclick="salvarConfig()" style="align-self:flex-start">Salvar Configurações</button>
+          <div id="cfg-msg" style="font-size:.85rem;color:#22c55e;display:none">✅ Salvo com sucesso!</div>
+        </div>
       </div>
     </div>
 
@@ -957,6 +991,7 @@ input,select,textarea,button{font-family:inherit}
 // ── STATE ─────────────────────────────────────────────────────────
 let USER = null;
 let DATA = { membros:[], ministerios:[], eventos:[], musicas:[], setlists:[], mural:[], financeiro:[], usuarios:[] };
+let CONFIG = {};
 let _minAtivo = null;
 let _postImg = null;
 let _semitones = {};
@@ -1098,6 +1133,7 @@ async function loadAll(){
   DATA_PERFIS=Array.isArray(perfis)?perfis:[];
   if(perms.p_financeiro){const fin=await api('/api/financeiro');DATA.financeiro=fin;}
   if(perms.p_usuarios){const [usr]=await Promise.all([api('/api/usuarios')]);DATA.usuarios=usr;}
+  const cfg=await api('/api/config');if(cfg&&!cfg.error)CONFIG=cfg;
 }
 
 // ── NAV ───────────────────────────────────────────────────────────
@@ -1116,6 +1152,7 @@ function navTo(page){
   if(page==='mural')renderMural();
   if(page==='financeiro')renderFinanceiro();
   if(page==='usuarios')renderUsuarios();
+  if(page==='configuracoes')renderConfig();
 }
 
 function toggleMore(){document.getElementById('nav-more').classList.toggle('open');}
@@ -2054,6 +2091,46 @@ async function responderIA(q){
     return `🤔 Não entendi. Tente:\n• "Quantos membros ativos?"\n• "Aniversários este mês"\n• "Saldo financeiro do mês"\n• "Próximos eventos"\n• "Músicas no repertório"`;
   }catch(e){return '⚠️ Erro ao buscar dados. Tente novamente.';}
 }
+// ── CONFIGURAÇÕES ─────────────────────────────────────────────────
+function renderConfig(){
+  document.getElementById('cfg-whatsapp').value=CONFIG.whatsapp_secretaria||'';
+  document.getElementById('cfg-pastor').value=CONFIG.nome_pastor||'';
+  document.getElementById('cfg-igreja').value=CONFIG.nome_igreja||'';
+  document.getElementById('cfg-msg').style.display='none';
+}
+async function salvarConfig(){
+  const d={
+    whatsapp_secretaria:document.getElementById('cfg-whatsapp').value.trim(),
+    nome_pastor:document.getElementById('cfg-pastor').value.trim(),
+    nome_igreja:document.getElementById('cfg-igreja').value.trim()
+  };
+  const r=await api('/api/config','PUT',d);
+  if(r&&r.ok){
+    CONFIG=Object.assign(CONFIG,d);
+    const m=document.getElementById('cfg-msg');
+    m.style.display='block';setTimeout(()=>m.style.display='none',3000);
+  }
+}
+
+// ── FALAR COM O PASTOR ────────────────────────────────────────────
+function abrirFalarPastor(){
+  if(!CONFIG.whatsapp_secretaria){
+    alert('O número da secretaria ainda não foi configurado. Contate o administrador.');
+    return;
+  }
+  document.getElementById('falar-motivo').value='';
+  document.getElementById('modal-falar-pastor').style.display='flex';
+}
+function enviarWhatsApp(){
+  const motivo=document.getElementById('falar-motivo').value.trim();
+  if(!motivo){alert('Descreva o motivo da reunião.');return;}
+  const num=(CONFIG.whatsapp_secretaria||'').replace(/\D/g,'');
+  const pastor=CONFIG.nome_pastor||'Pastor';
+  const texto=encodeURIComponent(`Olá! Gostaria de agendar uma reunião com o ${pastor}.\n\nMotivo: ${motivo}\n\n(mensagem enviada pelo sistema da igreja)`);
+  window.open(`https://wa.me/55${num}?text=${texto}`,'_blank');
+  document.getElementById('modal-falar-pastor').style.display='none';
+}
+
 // ── INIT ──────────────────────────────────────────────────────────
 (async()=>{
   const ok=await checkSession();
@@ -2066,6 +2143,29 @@ async function responderIA(q){
   }
 })();
 </script>
+
+<!-- MODAL FALAR COM O PASTOR -->
+<div class="modal-overlay" id="modal-falar-pastor" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <h3 class="modal-title">📞 Falar com o Pastor</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-falar-pastor').style.display='none'">×</button>
+    </div>
+    <div style="padding:20px 24px 24px">
+      <p style="font-size:.9rem;color:var(--text2);margin:0 0 14px">Descreva o motivo da reunião. A secretaria entrará em contato para agendar.</p>
+      <label style="font-size:.85rem;color:var(--text2)">Motivo da reunião
+        <textarea id="falar-motivo" rows="4" class="form-control" placeholder="Ex: Aconselhamento, pedido de oração, visita..." style="margin-top:6px;resize:vertical"></textarea>
+      </label>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button class="btn btn-primary" onclick="enviarWhatsApp()" style="flex:1;background:#25d366;border-color:#25d366">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:6px"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.555 4.116 1.528 5.843L.057 23.885l6.222-1.452A11.953 11.953 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.885 0-3.65-.518-5.164-1.42l-.371-.22-3.693.862.879-3.596-.243-.388A9.946 9.946 0 012 12c0-5.514 4.486-10 10-10s10 4.486 10 10-4.486 10-10 10z"/></svg>
+          Enviar pelo WhatsApp
+        </button>
+        <button class="btn" onclick="document.getElementById('modal-falar-pastor').style.display='none'" style="flex:.5">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ASSISTENTE FLUTUANTE -->
 <button id="assistFab" onclick="assistToggle()" title="Assistente IA">✨</button>

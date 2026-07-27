@@ -1,7 +1,7 @@
 import os, base64, io
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from models import db, Perfil, Usuario, Membro, Ministerio, Evento, Musica, Setlist, SetlistItem, Financeiro, MuralPost
+from models import db, Perfil, Config, Usuario, Membro, Ministerio, Evento, Musica, Setlist, SetlistItem, Financeiro, MuralPost
 from datetime import datetime, date
 
 app = Flask(__name__)
@@ -504,6 +504,25 @@ def del_usuario(uid):
     u = Usuario.query.get_or_404(uid); db.session.delete(u); db.session.commit()
     return jsonify({'ok':True})
 
+# ── CONFIGURAÇÕES ─────────────────────────────────────────────────
+@app.route('/api/config')
+@login_required
+def get_config():
+    rows = Config.query.all()
+    return jsonify({r.chave: r.valor for r in rows})
+
+@app.route('/api/config', methods=['PUT'])
+@login_required
+def save_config():
+    if not is_admin(): return jsonify({'ok':False}), 403
+    d = request.json or {}
+    for chave, valor in d.items():
+        c = Config.query.filter_by(chave=chave).first()
+        if c: c.valor = valor
+        else: db.session.add(Config(chave=chave, valor=valor))
+    db.session.commit()
+    return jsonify({'ok':True})
+
 # ── IMPORTAR MEMBROS (Excel) ──────────────────────────────────────
 @app.route('/api/membros/importar', methods=['POST'])
 @login_required
@@ -612,6 +631,16 @@ def init_db():
         for pd in PERFIS_PADRAO:
             if not Perfil.query.filter_by(nome=pd['nome']).first():
                 db.session.add(Perfil(**pd))
+        db.session.commit()
+        # Seed config padrão
+        configs_padrao = [
+            ('whatsapp_secretaria', ''),
+            ('nome_pastor', 'Pastor'),
+            ('nome_igreja', 'Reino & Graça'),
+        ]
+        for chave, valor in configs_padrao:
+            if not Config.query.filter_by(chave=chave).first():
+                db.session.add(Config(chave=chave, valor=valor))
         db.session.commit()
         # Seed usuários iniciais
         if not Usuario.query.first():

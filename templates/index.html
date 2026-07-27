@@ -325,9 +325,10 @@ input,select,textarea,button{font-family:inherit}
         <div class="page-sub">Gestão de membros e visitantes</div>
       </div>
       <div class="toolbar">
-        <input class="search-box" id="membros-search" placeholder="🔍 Buscar membro..." oninput="renderMembros()">
-        <button class="btn btn-primary" id="btn-novo-membro" onclick="openModalMembro()">+ Novo</button>
-        <button class="btn btn-secondary" id="btn-importar-membro" onclick="document.getElementById('import-excel').click()" style="display:none">📥 Importar Excel</button>
+        <input class="search-box" id="membros-search" placeholder="🔍 Buscar..." oninput="renderMembros()">
+        <button class="btn btn-primary" id="btn-novo-membro" onclick="openModalMembro()">+ Membro</button>
+        <button class="btn btn-secondary" id="btn-novo-visitante" onclick="openModalVisitante()">👋 Visitante</button>
+        <button class="btn btn-secondary" id="btn-importar-membro" onclick="document.getElementById('import-excel').click()" style="display:none">📥 Excel</button>
         <input type="file" id="import-excel" accept=".xlsx,.xls" style="display:none" onchange="importarExcel(this)">
       </div>
       <div id="membros-list"></div>
@@ -882,6 +883,32 @@ input,select,textarea,button{font-family:inherit}
   </div>
 </div>
 
+<!-- Modal Visitante -->
+<div class="modal-overlay" id="modal-visitante" onclick="if(event.target===this)closeModal('modal-visitante')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">👋 Cadastrar Visitante</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-visitante')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Cadastro rápido. Você pode completar os dados depois e converter para membro.</p>
+      <div class="form-group">
+        <label class="form-label">Nome *</label>
+        <input class="form-input" id="v-nome" placeholder="Nome completo">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Telefone</label>
+        <input class="form-input" id="v-tel" type="tel" placeholder="(27) 99999-9999"
+          onkeydown="if(event.key==='Enter')salvarVisitante()">
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-outline" onclick="closeModal('modal-visitante')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarVisitante()">Salvar Visitante</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Perfil -->
 <div class="modal-overlay" id="modal-perfil" onclick="if(event.target===this)closeModal('modal-perfil')">
   <div class="modal">
@@ -1120,18 +1147,30 @@ function renderMembros(){
   const list=DATA.membros.filter(m=>!q||m.nome.toLowerCase().includes(q));
   const el=document.getElementById('membros-list');
   if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">👥</div><p>Nenhum membro encontrado</p></div>';return;}
-  el.innerHTML=list.map(m=>`<div class="list-item">
-    <div class="list-avatar" style="overflow:hidden;padding:0">${avatarHtml(m)}</div>
-    <div class="list-info">
-      <div class="list-nome">${m.nome}</div>
-      <div class="list-sub">${m.profissao||''} ${m.bairro?'· '+m.bairro:''}</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <span class="badge badge-${(m.status||'ativo').toLowerCase().replace('í','i')}">${m.status||'Ativo'}</span>
-      ${hasPerm('p_membros')?`<button class="btn btn-ghost btn-sm" onclick="openModalMembro(${m.id})">✏️</button>
-      <button class="btn btn-ghost btn-sm" onclick="delMembro(${m.id})">🗑️</button>`:''}
-    </div>
-  </div>`).join('');
+  // Visitantes no topo, depois membros
+  const visitantes=list.filter(m=>m.status==='Visitante');
+  const outros=list.filter(m=>m.status!=='Visitante');
+  const ordenado=[...visitantes,...outros];
+
+  el.innerHTML=ordenado.map(m=>{
+    const isVisit=m.status==='Visitante';
+    const sub=isVisit?(m.tel||'Sem telefone'):`${m.profissao||''} ${m.bairro?'· '+m.bairro:''}`;
+    const acoes=hasPerm('p_membros')?`
+      ${isVisit?`<button class="btn btn-sm" style="background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.3);border-radius:8px;font-size:.72rem;padding:4px 10px;cursor:pointer;white-space:nowrap" onclick="converterParaMembro(${m.id})">👥 Converter</button>`:''}
+      <button class="btn btn-ghost btn-sm" onclick="openModalMembro(${m.id})">✏️</button>
+      <button class="btn btn-ghost btn-sm" onclick="delMembro(${m.id})">🗑️</button>`:'';
+    return `<div class="list-item" style="${isVisit?'border-left:3px solid rgba(201,146,42,.5);':''}">
+      <div class="list-avatar" style="overflow:hidden;padding:0;${isVisit?'background:linear-gradient(135deg,#7a5c10,#c9922a)':''}">${avatarHtml(m)}</div>
+      <div class="list-info">
+        <div class="list-nome">${m.nome}</div>
+        <div class="list-sub">${sub.trim()||'—'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+        <span class="badge badge-${(m.status||'ativo').toLowerCase().replace('í','i').replace('ú','u')}">${m.status||'Ativo'}</span>
+        ${acoes}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function atualizarIniciais(){
@@ -1192,6 +1231,40 @@ function openModalMembro(id){
     setFotoModal('','');
   }
   openModal('modal-membro');
+}
+
+function openModalVisitante(){
+  document.getElementById('v-nome').value='';
+  document.getElementById('v-tel').value='';
+  openModal('modal-visitante');
+  setTimeout(()=>document.getElementById('v-nome').focus(),150);
+}
+
+async function salvarVisitante(){
+  const nome=document.getElementById('v-nome').value.trim();
+  if(!nome){toast('Informe o nome','error');return;}
+  const tel=document.getElementById('v-tel').value.trim();
+  const res=await api('/api/membros',{method:'POST',body:JSON.stringify({nome,tel,status:'Visitante'})});
+  if(!res.ok){toast('Erro ao salvar','error');return;}
+  DATA.membros.unshift(res.membro);
+  closeModal('modal-visitante');
+  renderMembros();
+  toast(`👋 ${nome} cadastrado como visitante!`,'success');
+}
+
+function converterParaMembro(id){
+  const m=DATA.membros.find(x=>x.id===id);
+  if(!m) return;
+  // Abre o modal completo pré-preenchido com status Ativo
+  openModalMembro(id);
+  // Muda status para Ativo e foca no primeiro campo vazio
+  document.getElementById('m-status').value='Ativo';
+  setTimeout(()=>{
+    const campos=['m-nasc','m-email','m-prof','m-bairro'];
+    const vazio=campos.find(c=>!document.getElementById(c).value);
+    if(vazio) document.getElementById(vazio).focus();
+  },200);
+  toast('Complete os dados para converter em membro','success');
 }
 
 async function importarExcel(input){

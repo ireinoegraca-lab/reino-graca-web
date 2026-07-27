@@ -64,6 +64,7 @@ class Membro(db.Model):
     status     = db.Column(db.String(30), default='Ativo')
     bairro     = db.Column(db.String(80))
     obs        = db.Column(db.Text)
+    foto       = db.Column(db.Text)
     ministerio_id = db.Column(db.Integer, db.ForeignKey('ministerios.id'), nullable=True)
 
 class Ministerio(db.Model):

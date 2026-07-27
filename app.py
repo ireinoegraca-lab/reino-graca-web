@@ -33,7 +33,7 @@ def serialize_usuario(u):
 def serialize_membro(m):
     return {'id':m.id,'nome':m.nome,'nasc':m.nasc or '','tel':m.tel or '','email':m.email or '',
             'profissao':m.profissao or '','status':m.status or 'Ativo','bairro':m.bairro or '',
-            'obs':m.obs or '','ministerio_id':m.ministerio_id}
+            'obs':m.obs or '','foto':m.foto or '','ministerio_id':m.ministerio_id}
 def serialize_ministerio(c):
     return {'id':c.id,'nome':c.nome,'descricao':c.descricao or '','cor':c.cor or '#e11d2a',
             'membros':[{'id':mb.id,'nome':mb.nome,'status':mb.status} for mb in c.membros]}
@@ -135,7 +135,7 @@ def add_membro():
 def update_membro(mid):
     if not is_admin(): return jsonify({'ok':False}), 403
     m = Membro.query.get_or_404(mid); d = request.json
-    for k in ['nome','nasc','tel','email','profissao','status','bairro','obs','ministerio_id']:
+    for k in ['nome','nasc','tel','email','profissao','status','bairro','obs','foto','ministerio_id']:
         if k in d: setattr(m, k, d[k])
     db.session.commit()
     return jsonify({'ok':True,'membro':serialize_membro(m)})
@@ -600,6 +600,7 @@ def migrate_columns():
                 conn.rollback()
         add_col('usuarios', 'status',    "VARCHAR(20) DEFAULT 'ativo'")
         add_col('usuarios', 'perfil_id', 'INTEGER REFERENCES perfis(id)')
+        add_col('membros',  'foto',      'TEXT')
         conn.close()
 
 def init_db():

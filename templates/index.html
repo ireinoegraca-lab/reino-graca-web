@@ -2994,7 +2994,7 @@ function renderGuia(){
       <div style="font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--primary);padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:8px">${prof}</div>
       ${grupos[prof].map(m=>`
         <div class="list-item" style="margin-bottom:6px">
-          <div class="list-avatar">${iniciais(m.nome)}</div>
+          <div class="list-avatar" style="${m.foto?`background-image:url(${m.foto});background-size:cover;background-position:center;font-size:0`:''}">${m.foto?'':iniciais(m.nome)}</div>
           <div class="list-info">
             <div class="list-nome">${m.nome}</div>
             <div class="list-sub">${m.ministerio_nome||''}</div>

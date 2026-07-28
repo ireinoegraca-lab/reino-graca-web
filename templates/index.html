@@ -293,6 +293,9 @@ input,select,textarea,button{font-family:inherit}
     <div class="sidebar-item" onclick="navTo('oracao')" data-page="oracao"><span class="ni">🙏</span> Oração</div>
     <div class="sidebar-item" onclick="navTo('carteirinha')" data-page="carteirinha"><span class="ni">🪪</span> Carteirinha</div>
     <div class="sidebar-item" onclick="navTo('guia')" data-page="guia"><span class="ni">📖</span> Guia</div>
+    <div class="sidebar-item" onclick="navTo('comunicados')" data-page="comunicados"><span class="ni">📢</span> Comunicados</div>
+    <div class="sidebar-item" onclick="navTo('celulas')" data-page="celulas"><span class="ni">👥</span> Células</div>
+    <div class="sidebar-item" onclick="navTo('pix')" data-page="pix"><span class="ni">💠</span> PIX</div>
     <div class="sidebar-item" onclick="navTo('escala')" data-page="escala"><span class="ni">📋</span> Escala</div>
     <div class="sidebar-item" onclick="navTo('presenca')" data-page="presenca"><span class="ni">✅</span> Presença</div>
     <div class="sidebar-sep"></div>
@@ -334,6 +337,45 @@ input,select,textarea,button{font-family:inherit}
         <div style="font-size:2.2rem;margin-bottom:8px">📞</div>
         <div style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:4px">Falar com o Pastor</div>
         <div style="font-size:.85rem;color:rgba(255,255,255,.75)">Solicitar reunião via WhatsApp</div>
+      </div>
+    </div>
+
+    <!-- COMUNICADOS -->
+    <div class="page" id="page-comunicados">
+      <div class="page-header"><div class="page-title">Comunicados</div><div class="page-sub">Avisos e informações da igreja</div></div>
+      <div class="toolbar">
+        <button class="btn btn-primary admin-only" onclick="openModalComunicado()">+ Novo Comunicado</button>
+      </div>
+      <div id="comunicados-lista"></div>
+    </div>
+
+    <!-- CÉLULAS -->
+    <div class="page" id="page-celulas">
+      <div class="page-header"><div class="page-title">Células</div><div class="page-sub">Grupos pequenos e encontros</div></div>
+      <div class="toolbar">
+        <button class="btn btn-primary admin-only" onclick="openModalCelula()">+ Nova Célula</button>
+      </div>
+      <div id="celulas-lista"></div>
+    </div>
+
+    <!-- PIX -->
+    <div class="page" id="page-pix">
+      <div class="page-header"><div class="page-title">PIX</div><div class="page-sub">Contribua com a igreja</div></div>
+      <div id="pix-area" style="max-width:420px;margin:0 auto;text-align:center">
+        <div class="card" style="padding:32px 24px">
+          <div style="font-size:3rem;margin-bottom:12px">💠</div>
+          <div id="pix-nome" style="font-weight:700;font-size:1.1rem;margin-bottom:4px"></div>
+          <div id="pix-chave-label" style="font-size:.85rem;color:var(--text2);margin-bottom:24px"></div>
+          <div id="pix-qr" style="margin-bottom:20px"></div>
+          <button id="pix-copiar-btn" class="btn btn-primary" onclick="copiarPixChave()" style="width:100%">📋 Copiar Chave PIX</button>
+        </div>
+        <div class="card admin-only" style="margin-top:12px;text-align:left">
+          <div style="font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:10px">Configurar chave PIX</div>
+          <div style="display:flex;gap:8px">
+            <input id="pix-chave-input" class="form-control" placeholder="CPF, CNPJ, e-mail ou chave aleatória">
+            <button class="btn btn-primary btn-sm" onclick="salvarPixChave()">Salvar</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1317,6 +1359,9 @@ function navTo(page){
   if(page==='configuracoes')renderConfig();
   if(page==='oracao')renderOracao();
   if(page==='carteirinha')renderCarteirinha();
+  if(page==='comunicados')renderComunicados();
+  if(page==='celulas')renderCelulas();
+  if(page==='pix')renderPix();
   if(page==='guia')renderGuia();
   if(page==='escala')renderEscala();
   if(page==='presenca')renderPresenca();
@@ -2935,6 +2980,59 @@ function enviarWhatsApp(){
   </form>
 </div>
 
+<!-- MODAL COMUNICADO -->
+<div class="modal-overlay" id="modal-comunicado" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-header"><span>📢 Novo Comunicado</span><button class="modal-close" onclick="document.getElementById('modal-comunicado').style.display='none'">✕</button></div>
+    <div class="form-group"><label>Título</label><input id="com-titulo" class="form-control" placeholder="Título do comunicado"></div>
+    <div class="form-group"><label>Mensagem</label><textarea id="com-texto" class="form-control" rows="4" placeholder="Digite o comunicado..."></textarea></div>
+    <div class="form-group"><label>Ministério (opcional)</label>
+      <select id="com-min" class="form-control"><option value="">— todos —</option></select>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-outline" style="flex:1" onclick="document.getElementById('modal-comunicado').style.display='none'">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="salvarComunicado()">Publicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CÉLULA -->
+<div class="modal-overlay" id="modal-celula" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header"><span id="cel-modal-titulo">👥 Nova Célula</span><button class="modal-close" onclick="document.getElementById('modal-celula').style.display='none'">✕</button></div>
+    <input type="hidden" id="cel-id">
+    <div class="form-group"><label>Nome</label><input id="cel-nome" class="form-control" placeholder="Ex: Célula Esperança"></div>
+    <div class="form-group"><label>Líder</label>
+      <select id="cel-lider" class="form-control"><option value="">— sem líder —</option></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label>Dia da semana</label><input id="cel-dia" class="form-control" placeholder="Ex: Quarta-feira"></div>
+      <div class="form-group"><label>Horário</label><input id="cel-hora" class="form-control" placeholder="Ex: 19:30"></div>
+    </div>
+    <div class="form-group"><label>Local</label><input id="cel-local" class="form-control" placeholder="Ex: Casa do líder, Salão..."></div>
+    <div class="form-group"><label>Descrição</label><textarea id="cel-desc" class="form-control" rows="2"></textarea></div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-outline" style="flex:1" onclick="document.getElementById('modal-celula').style.display='none'">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="salvarCelula()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MEMBROS CÉLULA -->
+<div class="modal-overlay" id="modal-celula-membros" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-header"><span id="celm-titulo">Membros da Célula</span><button class="modal-close" onclick="document.getElementById('modal-celula-membros').style.display='none'">✕</button></div>
+    <input type="hidden" id="celm-id">
+    <div id="celm-lista" style="max-height:240px;overflow-y:auto;margin-bottom:16px"></div>
+    <div class="form-group"><label>Adicionar membro</label>
+      <div style="display:flex;gap:8px">
+        <select id="celm-membro" class="form-control"></select>
+        <button class="btn btn-primary btn-sm" onclick="addCelulaMembro()">+</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL ESCALA -->
 <div class="modal-overlay" id="modal-escala" onclick="if(event.target===this)this.style.display='none'">
   <div class="modal-box" style="max-width:480px">
@@ -2981,6 +3079,217 @@ function enviarWhatsApp(){
 </div>
 
 <script>
+// ── COMUNICADOS ───────────────────────────────────────────────────
+async function renderComunicados(){
+  const cs = await api('/api/comunicados');
+  const el = document.getElementById('comunicados-lista');
+  if(!cs.length){ el.innerHTML='<div class="empty">Nenhum comunicado publicado.</div>'; return; }
+  el.innerHTML = cs.map(c=>`
+    <div class="card" style="margin-bottom:12px;${!c.lido_por_mim?'border-left:3px solid var(--primary)':''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:1rem;margin-bottom:2px">${c.titulo}${!c.lido_por_mim?'<span style="background:var(--primary);color:#fff;font-size:.65rem;border-radius:20px;padding:2px 8px;margin-left:8px;font-weight:600">NOVO</span>':''}</div>
+          <div style="font-size:.78rem;color:var(--text2)">${c.autor}${c.ministerio?' · '+c.ministerio:''} · ${c.criado_em}</div>
+        </div>
+        <button class="btn btn-outline btn-sm admin-only" onclick="delComunicado(${c.id})" style="color:var(--danger)">🗑</button>
+      </div>
+      <div style="margin-top:10px;font-size:.9rem;line-height:1.6;white-space:pre-wrap">${c.texto}</div>
+      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <span style="font-size:.75rem;color:var(--text2)">👁 ${c.total_leituras} leitura${c.total_leituras!==1?'s':''}</span>
+        ${!c.lido_por_mim?`<button class="btn btn-outline btn-sm" onclick="marcarLido(${c.id},this)">✅ Marcar como lido</button>`:'<span style="font-size:.75rem;color:var(--green)">✅ Lido</span>'}
+      </div>
+    </div>`).join('');
+  applyPerms();
+}
+
+function openModalComunicado(){
+  document.getElementById('com-titulo').value='';
+  document.getElementById('com-texto').value='';
+  const sel=document.getElementById('com-min');
+  sel.innerHTML='<option value="">— todos —</option>'+(DATA.ministerios||[]).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  document.getElementById('modal-comunicado').style.display='flex';
+}
+
+async function salvarComunicado(){
+  const titulo=document.getElementById('com-titulo').value.trim();
+  const texto=document.getElementById('com-texto').value.trim();
+  if(!titulo||!texto){alert('Preencha título e mensagem.');return;}
+  await api('/api/comunicados',{method:'POST',body:JSON.stringify({titulo,texto,ministerio_id:document.getElementById('com-min').value||null})});
+  document.getElementById('modal-comunicado').style.display='none';
+  renderComunicados();
+}
+
+async function delComunicado(id){
+  if(!confirm('Excluir comunicado?'))return;
+  await api('/api/comunicados/'+id,{method:'DELETE'});
+  renderComunicados();
+}
+
+async function marcarLido(id,btn){
+  await api('/api/comunicados/'+id+'/ler',{method:'POST'});
+  btn.closest('.card').style.borderLeft='';
+  btn.parentElement.innerHTML='<span style="font-size:.75rem;color:var(--green)">✅ Lido</span>';
+  const badge=btn.closest('.card').querySelector('.card span[style*="background:var(--primary)"]');
+  if(badge)badge.remove();
+}
+
+// ── CÉLULAS ───────────────────────────────────────────────────────
+let celulasData=[];
+
+async function renderCelulas(){
+  const res=await api('/api/celulas');
+  celulasData=res.celulas||[];
+  const el=document.getElementById('celulas-lista');
+  if(!celulasData.length){el.innerHTML='<div class="empty">Nenhuma célula cadastrada.</div>';return;}
+  el.innerHTML=celulasData.map(c=>`
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-weight:700;font-size:1rem">${c.nome}</div>
+          <div style="font-size:.82rem;color:var(--text2);margin-top:2px">
+            ${c.lider?'👤 '+c.lider+' · ':''}
+            ${c.dia_semana||''}${c.horario?' às '+c.horario:''}
+            ${c.local?' · 📍 '+c.local:''}
+          </div>
+          ${c.descricao?`<div style="font-size:.85rem;margin-top:6px;color:var(--text2)">${c.descricao}</div>`:''}
+        </div>
+        <div style="display:flex;gap:6px" class="admin-only">
+          <button class="btn btn-outline btn-sm" onclick="openModalCelulaMembros(${c.id})">👥 ${c.membros.length}</button>
+          <button class="btn btn-outline btn-sm" onclick="editCelula(${c.id})">✏️</button>
+          <button class="btn btn-outline btn-sm" onclick="delCelula(${c.id})" style="color:var(--danger)">🗑</button>
+        </div>
+      </div>
+      ${c.membros.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">${c.membros.map(m=>`<span style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border-radius:20px;padding:4px 10px;font-size:.8rem"><div style="width:24px;height:24px;border-radius:50%;background:var(--primary-dim);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;${m.foto?`background-image:url(${m.foto});background-size:cover;background-position:center`:''}">${m.foto?'':iniciais(m.nome)}</div>${m.nome}</span>`).join('')}</div>`:''}
+    </div>`).join('');
+  applyPerms();
+}
+
+function openModalCelula(){
+  document.getElementById('cel-id').value='';
+  document.getElementById('cel-modal-titulo').textContent='👥 Nova Célula';
+  document.getElementById('cel-nome').value='';
+  document.getElementById('cel-dia').value='';
+  document.getElementById('cel-hora').value='';
+  document.getElementById('cel-local').value='';
+  document.getElementById('cel-desc').value='';
+  const sel=document.getElementById('cel-lider');
+  sel.innerHTML='<option value="">— sem líder —</option>'+(DATA.membros||[]).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  document.getElementById('modal-celula').style.display='flex';
+}
+
+function editCelula(id){
+  const c=celulasData.find(x=>x.id===id);if(!c)return;
+  document.getElementById('cel-id').value=id;
+  document.getElementById('cel-modal-titulo').textContent='✏️ Editar Célula';
+  document.getElementById('cel-nome').value=c.nome;
+  document.getElementById('cel-dia').value=c.dia_semana||'';
+  document.getElementById('cel-hora').value=c.horario||'';
+  document.getElementById('cel-local').value=c.local||'';
+  document.getElementById('cel-desc').value=c.descricao||'';
+  const sel=document.getElementById('cel-lider');
+  sel.innerHTML='<option value="">— sem líder —</option>'+(DATA.membros||[]).map(m=>`<option value="${m.id}"${m.id===c.lider_id?' selected':''}>${m.nome}</option>`).join('');
+  document.getElementById('modal-celula').style.display='flex';
+}
+
+async function salvarCelula(){
+  const id=document.getElementById('cel-id').value;
+  const body={nome:document.getElementById('cel-nome').value.trim(),descricao:document.getElementById('cel-desc').value.trim(),
+    lider_id:document.getElementById('cel-lider').value||null,dia_semana:document.getElementById('cel-dia').value.trim(),
+    horario:document.getElementById('cel-hora').value.trim(),local:document.getElementById('cel-local').value.trim()};
+  if(!body.nome){alert('Informe o nome da célula.');return;}
+  if(id) await api('/api/celulas/'+id,{method:'PUT',body:JSON.stringify(body)});
+  else    await api('/api/celulas',{method:'POST',body:JSON.stringify(body)});
+  document.getElementById('modal-celula').style.display='none';
+  renderCelulas();
+}
+
+async function delCelula(id){
+  if(!confirm('Excluir célula?'))return;
+  await api('/api/celulas/'+id,{method:'DELETE'});
+  renderCelulas();
+}
+
+async function openModalCelulaMembros(id){
+  const c=celulasData.find(x=>x.id===id);if(!c)return;
+  document.getElementById('celm-id').value=id;
+  document.getElementById('celm-titulo').textContent='👥 '+c.nome;
+  renderCelulaMembrosLista(c.membros,id);
+  const sel=document.getElementById('celm-membro');
+  const ids=new Set(c.membros.map(m=>m.id));
+  sel.innerHTML=(DATA.membros||[]).filter(m=>!ids.has(m.id)).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  document.getElementById('modal-celula-membros').style.display='flex';
+}
+
+function renderCelulaMembrosLista(membros,cid){
+  const el=document.getElementById('celm-lista');
+  el.innerHTML=membros.length?membros.map(m=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span>${m.nome}</span>
+      <button class="btn btn-outline btn-sm" style="color:var(--danger)" onclick="remCelulaMembro(${cid},${m.id})">✕</button>
+    </div>`).join(''):'<div style="color:var(--text2);font-size:.85rem;padding:8px 0">Nenhum membro ainda.</div>';
+}
+
+async function addCelulaMembro(){
+  const cid=document.getElementById('celm-id').value;
+  const mid=document.getElementById('celm-membro').value;
+  if(!mid)return;
+  await api('/api/celulas/'+cid+'/membros',{method:'POST',body:JSON.stringify({membro_id:+mid})});
+  const res=await api('/api/celulas');
+  celulasData=res.celulas||[];
+  const c=celulasData.find(x=>x.id==cid);
+  if(c){renderCelulaMembrosLista(c.membros,+cid);
+    const sel=document.getElementById('celm-membro');
+    const ids=new Set(c.membros.map(m=>m.id));
+    sel.innerHTML=(DATA.membros||[]).filter(m=>!ids.has(m.id)).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');}
+  document.getElementById('celulas-lista').innerHTML='';renderCelulas();
+}
+
+async function remCelulaMembro(cid,mid){
+  await api('/api/celulas/'+cid+'/membros/'+mid,{method:'DELETE'});
+  const res=await api('/api/celulas');
+  celulasData=res.celulas||[];
+  const c=celulasData.find(x=>x.id==cid);
+  if(c){renderCelulaMembrosLista(c.membros,cid);
+    const sel=document.getElementById('celm-membro');
+    const ids=new Set(c.membros.map(m=>m.id));
+    sel.innerHTML=(DATA.membros||[]).filter(m=>!ids.has(m.id)).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');}
+  renderCelulas();
+}
+
+// ── PIX ───────────────────────────────────────────────────────────
+let pixChaveAtual='';
+
+async function renderPix(){
+  const res=await api('/api/pix-info');
+  pixChaveAtual=res.chave||'';
+  document.getElementById('pix-nome').textContent=res.nome||'Igreja';
+  if(!pixChaveAtual){
+    document.getElementById('pix-chave-label').textContent='Nenhuma chave PIX configurada.';
+    document.getElementById('pix-qr').innerHTML='';
+    document.getElementById('pix-copiar-btn').style.display='none';
+    return;
+  }
+  document.getElementById('pix-chave-label').textContent='Chave PIX: '+pixChaveAtual;
+  document.getElementById('pix-copiar-btn').style.display='block';
+  const qrUrl='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(pixChaveAtual);
+  document.getElementById('pix-qr').innerHTML=`<img src="${qrUrl}" style="width:200px;height:200px;border-radius:12px;border:4px solid white" alt="QR Code PIX">`;
+  document.getElementById('pix-chave-input').value=pixChaveAtual;
+}
+
+function copiarPixChave(){
+  navigator.clipboard.writeText(pixChaveAtual).then(()=>showToast('Chave PIX copiada!')).catch(()=>{
+    const el=document.createElement('textarea');el.value=pixChaveAtual;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);showToast('Chave PIX copiada!');
+  });
+}
+
+async function salvarPixChave(){
+  const val=document.getElementById('pix-chave-input').value.trim();
+  if(!val){alert('Digite a chave PIX.');return;}
+  await api('/api/config',{method:'POST',body:JSON.stringify({chave:'pix_chave',valor:val})});
+  showToast('Chave PIX salva!');
+  renderPix();
+}
+
 // ── GUIA DE PROFISSÕES ────────────────────────────────────────────
 function renderGuia(){
   const q = (document.getElementById('guia-busca')?.value||'').toLowerCase();

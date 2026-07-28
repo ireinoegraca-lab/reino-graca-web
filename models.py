@@ -184,6 +184,44 @@ class OrcamentoItem(db.Model):
     categoria      = db.Column(db.String(80), nullable=False)
     valor_previsto = db.Column(db.Float, nullable=False, default=0)
 
+class Comunicado(db.Model):
+    __tablename__ = 'comunicados'
+    id            = db.Column(db.Integer, primary_key=True)
+    titulo        = db.Column(db.String(200), nullable=False)
+    texto         = db.Column(db.Text, nullable=False)
+    autor_id      = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    ministerio_id = db.Column(db.Integer, db.ForeignKey('ministerios.id'), nullable=True)
+    criado_em     = db.Column(db.DateTime, default=datetime.utcnow)
+    autor         = db.relationship('Usuario')
+    ministerio    = db.relationship('Ministerio')
+    leituras      = db.relationship('ComunicadoLeitura', backref='comunicado', lazy=True, cascade='all,delete')
+
+class ComunicadoLeitura(db.Model):
+    __tablename__ = 'comunicado_leituras'
+    id             = db.Column(db.Integer, primary_key=True)
+    comunicado_id  = db.Column(db.Integer, db.ForeignKey('comunicados.id'), nullable=False)
+    usuario_id     = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    lido_em        = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Celula(db.Model):
+    __tablename__ = 'celulas'
+    id          = db.Column(db.Integer, primary_key=True)
+    nome        = db.Column(db.String(120), nullable=False)
+    descricao   = db.Column(db.Text)
+    lider_id    = db.Column(db.Integer, db.ForeignKey('membros.id'), nullable=True)
+    dia_semana  = db.Column(db.String(20))
+    horario     = db.Column(db.String(10))
+    local       = db.Column(db.String(120))
+    lider       = db.relationship('Membro', foreign_keys=[lider_id])
+    membros     = db.relationship('CelulaMembro', backref='celula', lazy=True, cascade='all,delete')
+
+class CelulaMembro(db.Model):
+    __tablename__ = 'celula_membros'
+    id        = db.Column(db.Integer, primary_key=True)
+    celula_id = db.Column(db.Integer, db.ForeignKey('celulas.id'), nullable=False)
+    membro_id = db.Column(db.Integer, db.ForeignKey('membros.id'), nullable=False)
+    membro    = db.relationship('Membro')
+
 class PedidoOracao(db.Model):
     __tablename__ = 'pedidos_oracao'
     id               = db.Column(db.Integer, primary_key=True)

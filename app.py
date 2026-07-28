@@ -1,7 +1,7 @@
 import os, base64, io, zlib, struct
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, Response
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from models import db, Perfil, Config, Usuario, Membro, Ministerio, Evento, Musica, Setlist, SetlistItem, Financeiro, Campanha, CampanhaCotista, MuralPost, PedidoOracao, Escala, EscalaItem, Presenca, OrcamentoItem
+from models import db, Perfil, Config, Usuario, Membro, Ministerio, Evento, Musica, Setlist, SetlistItem, Financeiro, Campanha, CampanhaCotista, MuralPost, PedidoOracao, Escala, EscalaItem, Presenca, OrcamentoItem, Comunicado, ComunicadoLeitura, Celula, CelulaMembro
 from datetime import datetime, date
 
 def make_icon_png(size):
@@ -985,6 +985,7 @@ def migrate_columns():
         add_col('financeiro', 'campanha_id',      'INTEGER REFERENCES campanhas(id)')
         add_col('campanhas',  'dia_vencimento',       'INTEGER')
         add_col('usuarios',   'ultima_confirmacao',   'VARCHAR(10)')
+        add_col('comunicados','ministerio_id', 'INTEGER REFERENCES ministerios(id)')
         conn.close()
 
 def init_db():
@@ -1020,6 +1021,118 @@ def init_db():
             db.session.add(dirceu)
             db.session.commit()
             print('Usuários iniciais criados: admin/admin123 e dirceu/dirceu123')
+
+# ── COMUNICADOS ───────────────────────────────────────────────────
+def serialize_comunicado(c, user_id):
+    lidos_ids = {l.usuario_id for l in c.leituras}
+    return {
+        'id': c.id, 'titulo': c.titulo, 'texto': c.texto,
+        'autor': c.autor.nome, 'ministerio': c.ministerio.nome if c.ministerio else None,
+        'criado_em': c.criado_em.strftime('%Y-%m-%d %H:%M'),
+        'total_leituras': len(c.leituras),
+        'lido_por_mim': user_id in lidos_ids
+    }
+
+@app.route('/api/comunicados', methods=['GET'])
+@login_required
+def get_comunicados():
+    cs = Comunicado.query.order_by(Comunicado.criado_em.desc()).all()
+    return jsonify([serialize_comunicado(c, current_user.id) for c in cs])
+
+@app.route('/api/comunicados', methods=['POST'])
+@login_required
+def criar_comunicado():
+    if not (is_admin() or has_perm('p_mural')): return jsonify({'ok':False,'msg':'Sem permissão'}), 403
+    d = request.json
+    c = Comunicado(titulo=d['titulo'], texto=d['texto'], autor_id=current_user.id,
+                   ministerio_id=d.get('ministerio_id') or None)
+    db.session.add(c); db.session.commit()
+    return jsonify({'ok': True, 'id': c.id})
+
+@app.route('/api/comunicados/<int:cid>', methods=['DELETE'])
+@login_required
+def del_comunicado(cid):
+    if not is_admin(): return jsonify({'ok':False,'msg':'Sem permissão'}), 403
+    c = Comunicado.query.get_or_404(cid)
+    db.session.delete(c); db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/comunicados/<int:cid>/ler', methods=['POST'])
+@login_required
+def marcar_lido(cid):
+    existe = ComunicadoLeitura.query.filter_by(comunicado_id=cid, usuario_id=current_user.id).first()
+    if not existe:
+        db.session.add(ComunicadoLeitura(comunicado_id=cid, usuario_id=current_user.id))
+        db.session.commit()
+    return jsonify({'ok': True})
+
+# ── CÉLULAS ───────────────────────────────────────────────────────
+def serialize_celula(c):
+    return {
+        'id': c.id, 'nome': c.nome, 'descricao': c.descricao,
+        'lider': c.lider.nome if c.lider else None,
+        'lider_id': c.lider_id,
+        'dia_semana': c.dia_semana, 'horario': c.horario, 'local': c.local,
+        'membros': [{'id': m.membro_id, 'nome': m.membro.nome, 'foto': m.membro.foto} for m in c.membros]
+    }
+
+@app.route('/api/celulas', methods=['GET'])
+@login_required
+def get_celulas():
+    cs = Celula.query.order_by(Celula.nome).all()
+    return jsonify({'celulas': [serialize_celula(c) for c in cs]})
+
+@app.route('/api/celulas', methods=['POST'])
+@login_required
+def criar_celula():
+    if not is_admin(): return jsonify({'ok':False,'msg':'Sem permissão'}), 403
+    d = request.json
+    c = Celula(nome=d['nome'], descricao=d.get('descricao'), lider_id=d.get('lider_id') or None,
+               dia_semana=d.get('dia_semana'), horario=d.get('horario'), local=d.get('local'))
+    db.session.add(c); db.session.commit()
+    return jsonify({'ok': True, 'id': c.id})
+
+@app.route('/api/celulas/<int:cid>', methods=['PUT'])
+@login_required
+def edit_celula(cid):
+    if not is_admin(): return jsonify({'ok':False,'msg':'Sem permissão'}), 403
+    c = Celula.query.get_or_404(cid); d = request.json
+    c.nome=d.get('nome',c.nome); c.descricao=d.get('descricao',c.descricao)
+    c.lider_id=d.get('lider_id') or None; c.dia_semana=d.get('dia_semana',c.dia_semana)
+    c.horario=d.get('horario',c.horario); c.local=d.get('local',c.local)
+    db.session.commit(); return jsonify({'ok': True})
+
+@app.route('/api/celulas/<int:cid>', methods=['DELETE'])
+@login_required
+def del_celula(cid):
+    if not is_admin(): return jsonify({'ok':False,'msg':'Sem permissão'}), 403
+    c = Celula.query.get_or_404(cid); db.session.delete(c); db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/celulas/<int:cid>/membros', methods=['POST'])
+@login_required
+def add_celula_membro(cid):
+    if not is_admin(): return jsonify({'ok':False,'msg':'Sem permissão'}), 403
+    d = request.json; mid = d['membro_id']
+    if not CelulaMembro.query.filter_by(celula_id=cid, membro_id=mid).first():
+        db.session.add(CelulaMembro(celula_id=cid, membro_id=mid)); db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/celulas/<int:cid>/membros/<int:mid>', methods=['DELETE'])
+@login_required
+def rem_celula_membro(cid, mid):
+    if not is_admin(): return jsonify({'ok':False,'msg':'Sem permissão'}), 403
+    m = CelulaMembro.query.filter_by(celula_id=cid, membro_id=mid).first()
+    if m: db.session.delete(m); db.session.commit()
+    return jsonify({'ok': True})
+
+# ── PIX ───────────────────────────────────────────────────────────
+@app.route('/api/pix-info', methods=['GET'])
+@login_required
+def get_pix_info():
+    chave = Config.query.filter_by(chave='pix_chave').first()
+    nome  = Config.query.filter_by(chave='nome_igreja').first()
+    return jsonify({'chave': chave.valor if chave else '', 'nome': nome.valor if nome else 'Igreja'})
 
 init_db()
 

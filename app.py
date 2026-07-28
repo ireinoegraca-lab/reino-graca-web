@@ -1,7 +1,7 @@
 import os, base64, io
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from models import db, Perfil, Config, Usuario, Membro, Ministerio, Evento, Musica, Setlist, SetlistItem, Financeiro, MuralPost
+from models import db, Perfil, Config, Usuario, Membro, Ministerio, Evento, Musica, Setlist, SetlistItem, Financeiro, Campanha, CampanhaCotista, MuralPost
 from datetime import datetime, date
 
 app = Flask(__name__)
@@ -48,7 +48,16 @@ def serialize_setlist(s):
 def serialize_fin(f):
     return {'id':f.id,'tipo':f.tipo,'categoria':f.categoria or '','valor':f.valor,'data':f.data,
             'descricao':f.descricao or '','membro_id':f.membro_id,'forma':f.forma or '',
+            'campanha_id':f.campanha_id,'campanha_nome':f.campanha.nome if f.campanha else '',
             'membro_nome':f.membro.nome if f.membro else ''}
+
+def serialize_campanha(c):
+    arrecadado = db.session.query(db.func.sum(Financeiro.valor)).filter_by(campanha_id=c.id, tipo='entrada').scalar() or 0
+    mensal = sum(co.valor_mensal for co in c.cotistas)
+    return {'id':c.id,'nome':c.nome,'descricao':c.descricao or '','meta':c.meta or 0,
+            'data_inicio':c.data_inicio or '','data_fim':c.data_fim or '','status':c.status or 'ativa',
+            'arrecadado':float(arrecadado),'total_mensal':mensal,
+            'cotistas':[{'id':co.id,'membro_id':co.membro_id,'nome':co.membro.nome,'valor_mensal':co.valor_mensal} for co in c.cotistas]}
 def serialize_post(p):
     return {'id':p.id,'titulo':p.titulo,'texto':p.texto or '','imagem':p.imagem or '',
             'ministerio_id':p.ministerio_id,'ministerio_nome':p.ministerio.nome if p.ministerio else 'Geral',
@@ -293,7 +302,8 @@ def add_financeiro():
     if not is_admin(): return jsonify({'ok':False}), 403
     d = request.json
     f = Financeiro(tipo=d['tipo'],categoria=d.get('categoria'),valor=float(d['valor']),
-                   data=d['data'],descricao=d.get('descricao'),membro_id=d.get('membro_id'),forma=d.get('forma'))
+                   data=d['data'],descricao=d.get('descricao'),membro_id=d.get('membro_id'),
+                   forma=d.get('forma'),campanha_id=d.get('campanha_id') or None)
     db.session.add(f); db.session.commit()
     return jsonify({'ok':True,'lancamento':serialize_fin(f)})
 
@@ -347,6 +357,7 @@ def update_financeiro(fid):
     f = Financeiro.query.get_or_404(fid); d = request.json
     for k in ['tipo','categoria','valor','data','descricao','forma']:
         if k in d: setattr(f, k, float(d[k]) if k=='valor' else d[k])
+    if 'campanha_id' in d: f.campanha_id = d['campanha_id'] or None
     db.session.commit()
     return jsonify({'ok':True,'lancamento':serialize_fin(f)})
 
@@ -356,6 +367,62 @@ def del_financeiro(fid):
     if not is_admin(): return jsonify({'ok':False}), 403
     f = Financeiro.query.get_or_404(fid); db.session.delete(f); db.session.commit()
     return jsonify({'ok':True})
+
+# ── CAMPANHAS ────────────────────────────────────────────────────
+@app.route('/api/campanhas')
+@login_required
+def get_campanhas():
+    if not has_perm('p_financeiro'): return jsonify({'ok':False}), 403
+    return jsonify([serialize_campanha(c) for c in Campanha.query.order_by(Campanha.id.desc()).all()])
+
+@app.route('/api/campanhas', methods=['POST'])
+@login_required
+def add_campanha():
+    if not is_admin(): return jsonify({'ok':False}), 403
+    d = request.json
+    c = Campanha(nome=d['nome'],descricao=d.get('descricao'),meta=float(d.get('meta') or 0),
+                 data_inicio=d.get('data_inicio'),data_fim=d.get('data_fim'),status='ativa')
+    db.session.add(c); db.session.commit()
+    return jsonify({'ok':True,'campanha':serialize_campanha(c)})
+
+@app.route('/api/campanhas/<int:cid>', methods=['PUT'])
+@login_required
+def update_campanha(cid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    c = Campanha.query.get_or_404(cid); d = request.json
+    for k in ['nome','descricao','data_inicio','data_fim','status']:
+        if k in d: setattr(c, k, d[k])
+    if 'meta' in d: c.meta = float(d['meta'] or 0)
+    db.session.commit()
+    return jsonify({'ok':True,'campanha':serialize_campanha(c)})
+
+@app.route('/api/campanhas/<int:cid>', methods=['DELETE'])
+@login_required
+def del_campanha(cid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    c = Campanha.query.get_or_404(cid); db.session.delete(c); db.session.commit()
+    return jsonify({'ok':True})
+
+@app.route('/api/campanhas/<int:cid>/cotistas', methods=['POST'])
+@login_required
+def add_cotista(cid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    d = request.json
+    if CampanhaCotista.query.filter_by(campanha_id=cid, membro_id=d['membro_id']).first():
+        return jsonify({'ok':False,'msg':'Membro já é cotista desta campanha'}), 400
+    co = CampanhaCotista(campanha_id=cid, membro_id=d['membro_id'], valor_mensal=float(d['valor_mensal']))
+    db.session.add(co); db.session.commit()
+    c = Campanha.query.get(cid)
+    return jsonify({'ok':True,'campanha':serialize_campanha(c)})
+
+@app.route('/api/campanhas/<int:cid>/cotistas/<int:coid>', methods=['DELETE'])
+@login_required
+def del_cotista(cid, coid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    co = CampanhaCotista.query.get_or_404(coid)
+    db.session.delete(co); db.session.commit()
+    c = Campanha.query.get(cid)
+    return jsonify({'ok':True,'campanha':serialize_campanha(c)})
 
 # ── MURAL ─────────────────────────────────────────────────────────
 @app.route('/api/mural')
@@ -617,9 +684,10 @@ def migrate_columns():
                 print(f'Coluna {table}.{col} adicionada.')
             except Exception:
                 conn.rollback()
-        add_col('usuarios', 'status',    "VARCHAR(20) DEFAULT 'ativo'")
-        add_col('usuarios', 'perfil_id', 'INTEGER REFERENCES perfis(id)')
-        add_col('membros',  'foto',      'TEXT')
+        add_col('usuarios',   'status',      "VARCHAR(20) DEFAULT 'ativo'")
+        add_col('usuarios',   'perfil_id',   'INTEGER REFERENCES perfis(id)')
+        add_col('membros',    'foto',        'TEXT')
+        add_col('financeiro', 'campanha_id', 'INTEGER REFERENCES campanhas(id)')
         conn.close()
 
 def init_db():

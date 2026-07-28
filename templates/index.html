@@ -456,8 +456,10 @@ input,select,textarea,button{font-family:inherit}
           <button class="btn btn-outline btn-sm fin-aba active" onclick="setFinAba('todos',this)">Todos</button>
           <button class="btn btn-outline btn-sm fin-aba" onclick="setFinAba('entrada',this)">Entradas</button>
           <button class="btn btn-outline btn-sm fin-aba" onclick="setFinAba('saida',this)">Saídas</button>
+          <button class="btn btn-outline btn-sm fin-aba" onclick="setFinAba('campanhas',this)" style="border-color:#f59e0b;color:#f59e0b">🎯 Campanhas</button>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="openModalFin()">+ Lançamento</button>
+        <button class="btn btn-primary btn-sm" id="btn-nova-campanha" onclick="openModalCampanha()" style="display:none">+ Campanha</button>
+        <button class="btn btn-primary btn-sm" id="btn-novo-lancamento" onclick="openModalFin()">+ Lançamento</button>
         <button class="btn btn-outline btn-sm" onclick="document.getElementById('import-fin-excel').click()">📥 Importar Excel</button>
         <input type="file" id="import-fin-excel" accept=".xlsx,.xls" style="display:none" onchange="importarFinExcel(this)">
       </div>
@@ -465,8 +467,12 @@ input,select,textarea,button{font-family:inherit}
       <div id="fin-resumo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px"></div>
       <!-- por tipo -->
       <div class="card" id="fin-cats" style="display:none;margin-bottom:12px"></div>
+      <!-- campanhas -->
+      <div id="fin-campanhas-container" style="display:none">
+        <div id="fin-campanhas-lista"></div>
+      </div>
       <!-- busca + tabela -->
-      <div class="card" style="overflow-x:auto">
+      <div class="card" id="fin-lancamentos-card" style="overflow-x:auto">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
           <input class="search-box" id="fin-busca" placeholder="🔍 Buscar..." oninput="renderFinLancamentos()" style="max-width:260px">
         </div>
@@ -855,6 +861,12 @@ input,select,textarea,button{font-family:inherit}
         <label class="form-label">Descrição</label>
         <input class="form-input" id="fin-desc" placeholder="Descrição...">
       </div>
+      <div class="form-group">
+        <label class="form-label">Vincular a Campanha</label>
+        <select class="form-input" id="fin-campanha">
+          <option value="">— nenhuma —</option>
+        </select>
+      </div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button class="btn btn-outline" onclick="closeModal('modal-fin')">Cancelar</button>
         <button class="btn btn-primary" onclick="salvarFin()">Salvar</button>
@@ -990,7 +1002,7 @@ input,select,textarea,button{font-family:inherit}
 <script>
 // ── STATE ─────────────────────────────────────────────────────────
 let USER = null;
-let DATA = { membros:[], ministerios:[], eventos:[], musicas:[], setlists:[], mural:[], financeiro:[], usuarios:[] };
+let DATA = { membros:[], ministerios:[], eventos:[], musicas:[], setlists:[], mural:[], financeiro:[], usuarios:[], campanhas:[] };
 let CONFIG = {};
 let _minAtivo = null;
 let _postImg = null;
@@ -1131,7 +1143,10 @@ async function loadAll(){
   DATA.membros=membros;DATA.ministerios=ministerios;DATA.eventos=eventos;
   DATA.musicas=musicas;DATA.setlists=setlists;DATA.mural=mural;
   DATA_PERFIS=Array.isArray(perfis)?perfis:[];
-  if(perms.p_financeiro){const fin=await api('/api/financeiro');DATA.financeiro=fin;}
+  if(perms.p_financeiro){
+    const [fin,camp]=await Promise.all([api('/api/financeiro'),api('/api/campanhas')]);
+    DATA.financeiro=fin; DATA.campanhas=Array.isArray(camp)?camp:[];
+  }
   if(perms.p_usuarios){const [usr]=await Promise.all([api('/api/usuarios')]);DATA.usuarios=usr;}
   const cfg=await api('/api/config');if(cfg&&!cfg.error)CONFIG=cfg;
 }
@@ -1678,7 +1693,19 @@ let _finDate=new Date();
 let _finAba='todos';
 
 function finMes(d){_finDate=new Date(_finDate.getFullYear(),_finDate.getMonth()+d,1);renderFinanceiro();}
-function setFinAba(aba,el){_finAba=aba;document.querySelectorAll('.fin-aba').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderFinanceiro();}
+function setFinAba(aba,el){
+  _finAba=aba;
+  document.querySelectorAll('.fin-aba').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  const isCamp=aba==='campanhas';
+  document.getElementById('fin-campanhas-container').style.display=isCamp?'':'none';
+  document.getElementById('fin-lancamentos-card').style.display=isCamp?'none':'';
+  document.getElementById('fin-resumo').style.display=isCamp?'none':'';
+  document.getElementById('fin-cats').style.display=isCamp?'none':'';
+  document.getElementById('btn-nova-campanha').style.display=isCamp?'':'none';
+  document.getElementById('btn-novo-lancamento').style.display=isCamp?'none':'';
+  if(isCamp) renderCampanhas(); else renderFinanceiro();
+}
 
 function renderFinanceiro(){
   const todos=DATA.financeiro;
@@ -1808,6 +1835,10 @@ function openModalFin(id){
   document.getElementById('fin-cat-custom').style.display='none';
   document.getElementById('fin-desc').value=f?f.descricao||'':'';
   document.getElementById('fin-forma').value=f?f.forma||'Dinheiro':'Dinheiro';
+  // popula campanhas ativas
+  const selCamp=document.getElementById('fin-campanha');
+  selCamp.innerHTML='<option value="">— nenhuma —</option>'+(DATA.campanhas||[]).filter(c=>c.status==='ativa').map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  selCamp.value=f&&f.campanha_id?f.campanha_id:'';
   openModal('modal-fin');
 }
 
@@ -1815,7 +1846,8 @@ async function salvarFin(){
   const id=document.getElementById('fin-id').value;
   const valor=document.getElementById('fin-valor').value,data=document.getElementById('fin-data').value;
   if(!valor||!data){toast('Preencha valor e data','error');return;}
-  const body={tipo:document.getElementById('fin-tipo').value,categoria:document.getElementById('fin-cat').value,valor:parseFloat(valor),data,descricao:document.getElementById('fin-desc').value,forma:document.getElementById('fin-forma').value};
+  const campId=document.getElementById('fin-campanha').value;
+  const body={tipo:document.getElementById('fin-tipo').value,categoria:document.getElementById('fin-cat').value,valor:parseFloat(valor),data,descricao:document.getElementById('fin-desc').value,forma:document.getElementById('fin-forma').value,campanha_id:campId?parseInt(campId):null};
   if(id){
     const res=await api(`/api/financeiro/${id}`,{method:'PUT',body:JSON.stringify(body)});
     if(!res.ok){toast('Erro','error');return;}
@@ -2091,6 +2123,151 @@ async function responderIA(q){
     return `🤔 Não entendi. Tente:\n• "Quantos membros ativos?"\n• "Aniversários este mês"\n• "Saldo financeiro do mês"\n• "Próximos eventos"\n• "Músicas no repertório"`;
   }catch(e){return '⚠️ Erro ao buscar dados. Tente novamente.';}
 }
+// ── CAMPANHAS ─────────────────────────────────────────────────────
+function renderCampanhas(){
+  const el=document.getElementById('fin-campanhas-lista');
+  if(!DATA.campanhas.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">🎯</div><p>Nenhuma campanha criada</p></div>';
+    return;
+  }
+  el.innerHTML=DATA.campanhas.map(c=>{
+    const pct=c.meta>0?Math.min(100,Math.round(c.arrecadado/c.meta*100)):0;
+    const falta=c.meta>0?Math.max(0,c.meta-c.arrecadado):0;
+    const statusColor=c.status==='ativa'?'#22c55e':'#9b9296';
+    const mesesRestantes=c.data_fim?Math.max(0,Math.ceil((new Date(c.data_fim)-new Date())/(1000*60*60*24*30))):null;
+    return `<div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-weight:700;font-size:1rem">${c.nome}</span>
+            <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}44">${c.status}</span>
+          </div>
+          ${c.descricao?`<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px">${c.descricao}</div>`:''}
+          ${c.data_inicio||c.data_fim?`<div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">📅 ${c.data_inicio?fmtDataBr(c.data_inicio):'?'} → ${c.data_fim?fmtDataBr(c.data_fim):'sem data fim'}${mesesRestantes!==null?' ('+mesesRestantes+' meses restantes)':''}</div>`:''}
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-outline btn-sm" onclick="openModalCotistas(${c.id})" title="Gerenciar cotistas">👥 Cotistas (${c.cotistas.length})</button>
+          <button class="btn btn-ghost btn-sm" onclick="openModalCampanha(${c.id})" title="Editar">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="delCampanha(${c.id})" title="Excluir">🗑️</button>
+        </div>
+      </div>
+      <!-- Barra de progresso -->
+      ${c.meta>0?`
+      <div style="margin:10px 0 6px">
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:4px">
+          <span>Arrecadado: <strong style="color:#22c55e">${fmtMoeda(c.arrecadado)}</strong></span>
+          <span>Meta: <strong>${fmtMoeda(c.meta)}</strong></span>
+        </div>
+        <div style="background:var(--bg);border-radius:8px;height:10px;overflow:hidden;border:1px solid var(--line)">
+          <div style="height:100%;border-radius:8px;background:${pct>=100?'#f59e0b':'#22c55e'};width:${pct}%;transition:width .4s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-top:4px">
+          <span>${pct}% concluído</span>
+          ${falta>0?`<span>Faltam: ${fmtMoeda(falta)}</span>`:`<span style="color:#f59e0b;font-weight:700">✅ Meta atingida!</span>`}
+        </div>
+      </div>`:'<div style="font-size:.78rem;color:var(--muted);margin:8px 0">Sem meta definida</div>'}
+      <!-- Cotistas resumo -->
+      ${c.cotistas.length?`
+      <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:10px">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:6px">💰 Comprometimento mensal dos cotistas</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${c.cotistas.map(co=>`<span style="font-size:.75rem;padding:3px 10px;border-radius:20px;background:var(--bg);border:1px solid var(--line)">${co.nome.split(' ')[0]} — ${fmtMoeda(co.valor_mensal)}/mês</span>`).join('')}
+        </div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--brand2);margin-top:8px">Total mensal previsto: ${fmtMoeda(c.total_mensal)}</div>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function openModalCampanha(id){
+  const c=id?DATA.campanhas.find(x=>x.id===id):null;
+  document.getElementById('modal-campanha-titulo').textContent=c?'Editar Campanha':'Nova Campanha';
+  document.getElementById('camp-id').value=c?c.id:'';
+  document.getElementById('camp-nome').value=c?c.nome:'';
+  document.getElementById('camp-desc').value=c?c.descricao||'':'';
+  document.getElementById('camp-meta').value=c?c.meta||'':'';
+  document.getElementById('camp-inicio').value=c?c.data_inicio||'':'';
+  document.getElementById('camp-fim').value=c?c.data_fim||'':'';
+  document.getElementById('modal-campanha').style.display='flex';
+}
+
+async function salvarCampanha(){
+  const id=document.getElementById('camp-id').value;
+  const nome=document.getElementById('camp-nome').value.trim();
+  if(!nome){toast('Informe o nome da campanha','error');return;}
+  const body={nome,descricao:document.getElementById('camp-desc').value,
+    meta:parseFloat(document.getElementById('camp-meta').value)||0,
+    data_inicio:document.getElementById('camp-inicio').value||null,
+    data_fim:document.getElementById('camp-fim').value||null};
+  let r;
+  if(id){
+    r=await api(`/api/campanhas/${id}`,{method:'PUT',body:JSON.stringify(body)});
+    if(r.ok){const idx=DATA.campanhas.findIndex(c=>c.id==id);if(idx>=0)DATA.campanhas[idx]=r.campanha;}
+  } else {
+    r=await api('/api/campanhas',{method:'POST',body:JSON.stringify(body)});
+    if(r.ok) DATA.campanhas.unshift(r.campanha);
+  }
+  if(!r.ok){toast('Erro ao salvar','error');return;}
+  document.getElementById('modal-campanha').style.display='none';
+  renderCampanhas(); toast('Campanha salva!','success');
+}
+
+async function delCampanha(id){
+  if(!confirm('Excluir campanha? Os lançamentos vinculados serão desvinculados.'))return;
+  await api(`/api/campanhas/${id}`,{method:'DELETE'});
+  DATA.campanhas=DATA.campanhas.filter(c=>c.id!==id);
+  renderCampanhas(); toast('Campanha excluída','success');
+}
+
+function openModalCotistas(campId){
+  const c=DATA.campanhas.find(x=>x.id===campId);
+  if(!c)return;
+  document.getElementById('modal-cotistas-titulo').textContent=`Cotistas — ${c.nome}`;
+  document.getElementById('cotista-camp-id').value=campId;
+  // popula select de membros
+  const sel=document.getElementById('cotista-membro');
+  const jaInscritos=new Set(c.cotistas.map(co=>co.membro_id));
+  sel.innerHTML=DATA.membros.filter(m=>m.status==='Ativo'&&!jaInscritos.has(m.id)).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  document.getElementById('cotista-valor').value='';
+  renderCotistaLista(c);
+  document.getElementById('modal-cotistas').style.display='flex';
+}
+
+function renderCotistaLista(c){
+  const el=document.getElementById('cotistas-lista');
+  if(!c.cotistas.length){el.innerHTML='<div style="text-align:center;color:var(--muted);font-size:.85rem;padding:20px">Nenhum cotista ainda</div>';
+    document.getElementById('cotistas-total').textContent='';return;}
+  el.innerHTML=c.cotistas.map(co=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:.85rem">
+      <span>${co.nome}</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-weight:700;color:#22c55e">${fmtMoeda(co.valor_mensal)}/mês</span>
+        <button class="btn btn-ghost btn-sm" onclick="removerCotista(${c.id},${co.id})" title="Remover">✕</button>
+      </div>
+    </div>`).join('');
+  document.getElementById('cotistas-total').textContent=`Total comprometido/mês: ${fmtMoeda(c.total_mensal)}`;
+}
+
+async function adicionarCotista(){
+  const campId=parseInt(document.getElementById('cotista-camp-id').value);
+  const memId=parseInt(document.getElementById('cotista-membro').value);
+  const val=parseFloat(document.getElementById('cotista-valor').value);
+  if(!memId||!val||val<=0){toast('Selecione membro e informe o valor','error');return;}
+  const r=await api(`/api/campanhas/${campId}/cotistas`,{method:'POST',body:JSON.stringify({membro_id:memId,valor_mensal:val})});
+  if(!r.ok){toast(r.msg||'Erro','error');return;}
+  const idx=DATA.campanhas.findIndex(c=>c.id===campId);
+  if(idx>=0) DATA.campanhas[idx]=r.campanha;
+  openModalCotistas(campId); // re-abre para atualizar lista e select
+}
+
+async function removerCotista(campId,coId){
+  const r=await api(`/api/campanhas/${campId}/cotistas/${coId}`,{method:'DELETE'});
+  if(!r.ok){toast('Erro','error');return;}
+  const idx=DATA.campanhas.findIndex(c=>c.id===campId);
+  if(idx>=0) DATA.campanhas[idx]=r.campanha;
+  openModalCotistas(campId);
+}
+
 // ── CONFIGURAÇÕES ─────────────────────────────────────────────────
 function renderConfig(){
   document.getElementById('cfg-whatsapp').value=CONFIG.whatsapp_secretaria||'';
@@ -2143,6 +2320,66 @@ function enviarWhatsApp(){
   }
 })();
 </script>
+
+<!-- MODAL CAMPANHA -->
+<div class="modal-overlay" id="modal-campanha" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-campanha-titulo">Nova Campanha</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-campanha').style.display='none'">×</button>
+    </div>
+    <div style="padding:20px 24px 24px;display:flex;flex-direction:column;gap:14px">
+      <input type="hidden" id="camp-id">
+      <label style="font-size:.85rem;color:var(--text2)">Nome da campanha *
+        <input id="camp-nome" class="form-control" placeholder="Ex: Reforma do Templo" style="margin-top:4px">
+      </label>
+      <label style="font-size:.85rem;color:var(--text2)">Descrição
+        <textarea id="camp-desc" rows="2" class="form-control" placeholder="Objetivo da campanha..." style="margin-top:4px;resize:vertical"></textarea>
+      </label>
+      <label style="font-size:.85rem;color:var(--text2)">Meta de arrecadação (R$)
+        <input id="camp-meta" type="number" step="0.01" min="0" class="form-control" placeholder="0,00" style="margin-top:4px">
+      </label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <label style="font-size:.85rem;color:var(--text2)">Data início
+          <input id="camp-inicio" type="date" class="form-control" style="margin-top:4px">
+        </label>
+        <label style="font-size:.85rem;color:var(--text2)">Data fim
+          <input id="camp-fim" type="date" class="form-control" style="margin-top:4px">
+        </label>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn btn-primary" onclick="salvarCampanha()" style="flex:1">Salvar</button>
+        <button class="btn" onclick="document.getElementById('modal-campanha').style.display='none'" style="flex:.5">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COTISTAS -->
+<div class="modal-overlay" id="modal-cotistas" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-cotistas-titulo">Cotistas da Campanha</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-cotistas').style.display='none'">×</button>
+    </div>
+    <div style="padding:20px 24px 24px">
+      <input type="hidden" id="cotista-camp-id">
+      <!-- adicionar cotista -->
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:end;margin-bottom:16px">
+        <label style="font-size:.85rem;color:var(--text2)">Membro
+          <select id="cotista-membro" class="form-control" style="margin-top:4px"></select>
+        </label>
+        <label style="font-size:.85rem;color:var(--text2)">Valor/mês
+          <input id="cotista-valor" type="number" step="0.01" min="0" class="form-control" placeholder="0,00" style="margin-top:4px;width:110px">
+        </label>
+        <button class="btn btn-primary" onclick="adicionarCotista()" style="height:38px">+ Add</button>
+      </div>
+      <!-- lista de cotistas -->
+      <div id="cotistas-lista" style="max-height:300px;overflow-y:auto"></div>
+      <div id="cotistas-total" style="margin-top:12px;font-size:.85rem;font-weight:700;text-align:right;color:var(--brand2)"></div>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL FALAR COM O PASTOR -->
 <div class="modal-overlay" id="modal-falar-pastor" onclick="if(event.target===this)this.style.display='none'">

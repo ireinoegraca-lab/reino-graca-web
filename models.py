@@ -111,17 +111,38 @@ class SetlistItem(db.Model):
     tom        = db.Column(db.String(5))
     musica     = db.relationship('Musica')
 
+class Campanha(db.Model):
+    __tablename__ = 'campanhas'
+    id          = db.Column(db.Integer, primary_key=True)
+    nome        = db.Column(db.String(120), nullable=False)
+    descricao   = db.Column(db.Text)
+    meta        = db.Column(db.Float, default=0)
+    data_inicio = db.Column(db.String(10))
+    data_fim    = db.Column(db.String(10))
+    status      = db.Column(db.String(20), default='ativa')
+    cotistas    = db.relationship('CampanhaCotista', backref='campanha', lazy=True, cascade='all,delete')
+
+class CampanhaCotista(db.Model):
+    __tablename__ = 'campanha_cotistas'
+    id           = db.Column(db.Integer, primary_key=True)
+    campanha_id  = db.Column(db.Integer, db.ForeignKey('campanhas.id'), nullable=False)
+    membro_id    = db.Column(db.Integer, db.ForeignKey('membros.id'), nullable=False)
+    valor_mensal = db.Column(db.Float, nullable=False)
+    membro       = db.relationship('Membro')
+
 class Financeiro(db.Model):
     __tablename__ = 'financeiro'
-    id         = db.Column(db.Integer, primary_key=True)
-    tipo       = db.Column(db.String(20), nullable=False)
-    categoria  = db.Column(db.String(60))
-    valor      = db.Column(db.Float, nullable=False)
-    data       = db.Column(db.String(10), nullable=False)
-    descricao  = db.Column(db.Text)
-    membro_id  = db.Column(db.Integer, db.ForeignKey('membros.id'), nullable=True)
-    forma      = db.Column(db.String(30))
-    membro     = db.relationship('Membro')
+    id          = db.Column(db.Integer, primary_key=True)
+    tipo        = db.Column(db.String(20), nullable=False)
+    categoria   = db.Column(db.String(60))
+    valor       = db.Column(db.Float, nullable=False)
+    data        = db.Column(db.String(10), nullable=False)
+    descricao   = db.Column(db.Text)
+    membro_id   = db.Column(db.Integer, db.ForeignKey('membros.id'), nullable=True)
+    forma       = db.Column(db.String(30))
+    campanha_id = db.Column(db.Integer, db.ForeignKey('campanhas.id'), nullable=True)
+    membro      = db.relationship('Membro')
+    campanha    = db.relationship('Campanha', foreign_keys=[campanha_id])
 
 class Config(db.Model):
     __tablename__ = 'config'

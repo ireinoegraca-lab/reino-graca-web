@@ -1,8 +1,27 @@
-import os, base64, io
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+import os, base64, io, zlib, struct
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, Response
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from models import db, Perfil, Config, Usuario, Membro, Ministerio, Evento, Musica, Setlist, SetlistItem, Financeiro, Campanha, CampanhaCotista, MuralPost
+from models import db, Perfil, Config, Usuario, Membro, Ministerio, Evento, Musica, Setlist, SetlistItem, Financeiro, Campanha, CampanhaCotista, MuralPost, PedidoOracao
 from datetime import datetime, date
+
+def make_icon_png(size):
+    """Gera PNG simples: fundo vermelho + cruz branca centralizada."""
+    bar = max(1, size // 10)
+    arm = size // 3
+    rows = []
+    for y in range(size):
+        row = bytearray()
+        for x in range(size):
+            cx, cy = x - size // 2, y - size // 2
+            cross = (abs(cx) < bar and abs(cy) < arm) or (abs(cy) < bar and abs(cx) < arm)
+            row += b'\xff\xff\xff' if cross else b'\xe1\x1d\x2a'
+        rows.append(bytes(row))
+    raw = b''.join(b'\x00' + r for r in rows)
+    def chunk(tag, data):
+        body = tag + data
+        return struct.pack('>I', len(data)) + body + struct.pack('>I', zlib.crc32(body) & 0xffffffff)
+    ihdr = struct.pack('>IIBBBBB', size, size, 8, 2, 0, 0, 0)
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'rg-secret-2026')
@@ -76,6 +95,31 @@ def serialize_post(p):
     return {'id':p.id,'titulo':p.titulo,'texto':p.texto or '','imagem':p.imagem or '',
             'ministerio_id':p.ministerio_id,'ministerio_nome':p.ministerio.nome if p.ministerio else 'Geral',
             'autor_nome':p.autor.nome,'criado_em':p.criado_em.isoformat()}
+
+# ── PWA ───────────────────────────────────────────────────────────
+@app.route('/manifest.json')
+def manifest():
+    cfg = {r.chave: r.valor for r in Config.query.all()}
+    nome = cfg.get('nome_igreja', 'Igreja')
+    data = {
+        "name": f"{nome} — Sistema",
+        "short_name": nome[:12],
+        "description": f"Sistema de gestão da {nome}",
+        "start_url": "/", "display": "standalone",
+        "background_color": "#080808", "theme_color": "#e11d2a",
+        "icons": [
+            {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+            {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+        ]
+    }
+    import json
+    return Response(json.dumps(data), mimetype='application/manifest+json')
+
+@app.route('/icon-<int:size>.png')
+def icon_png(size):
+    size = min(size, 512)
+    return Response(make_icon_png(size), mimetype='image/png',
+                    headers={'Cache-Control': 'public, max-age=86400'})
 
 # ── MAIN ──────────────────────────────────────────────────────────
 @app.route('/')
@@ -480,6 +524,53 @@ def del_cotista(cid, coid):
     db.session.delete(co); db.session.commit()
     c = Campanha.query.get(cid)
     return jsonify({'ok':True,'campanha':serialize_campanha(c)})
+
+# ── ORAÇÃO ────────────────────────────────────────────────────────
+def serialize_oracao(p):
+    return {'id':p.id,'texto':p.texto,'nome_solicitante':p.nome_solicitante or 'Anônimo',
+            'privado':p.privado,'status':p.status,
+            'criado_em':p.criado_em.strftime('%Y-%m-%d'),'membro_id':p.membro_id}
+
+@app.route('/api/oracoes')
+@login_required
+def get_oracoes():
+    q = PedidoOracao.query
+    if not is_admin():
+        q = q.filter((PedidoOracao.privado==False) | (PedidoOracao.membro_id==None))
+    return jsonify([serialize_oracao(p) for p in q.order_by(PedidoOracao.criado_em.desc()).all()])
+
+@app.route('/api/oracoes', methods=['POST'])
+@login_required
+def add_oracao():
+    d = request.json or {}
+    texto = (d.get('texto') or '').strip()
+    if not texto: return jsonify({'ok':False,'msg':'Escreva o pedido'}), 400
+    anonimo = bool(d.get('anonimo'))
+    p = PedidoOracao(
+        texto=texto,
+        nome_solicitante=None if anonimo else current_user.nome,
+        membro_id=None if anonimo else None,
+        privado=bool(d.get('privado')),
+        status='aberto'
+    )
+    db.session.add(p); db.session.commit()
+    return jsonify({'ok':True,'pedido':serialize_oracao(p)})
+
+@app.route('/api/oracoes/<int:pid>/status', methods=['PUT'])
+@login_required
+def update_oracao_status(pid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    p = PedidoOracao.query.get_or_404(pid)
+    p.status = request.json.get('status', p.status)
+    db.session.commit()
+    return jsonify({'ok':True,'pedido':serialize_oracao(p)})
+
+@app.route('/api/oracoes/<int:pid>', methods=['DELETE'])
+@login_required
+def del_oracao(pid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    p = PedidoOracao.query.get_or_404(pid); db.session.delete(p); db.session.commit()
+    return jsonify({'ok':True})
 
 # ── MURAL ─────────────────────────────────────────────────────────
 @app.route('/api/mural')

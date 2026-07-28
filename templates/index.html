@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="theme-color" content="#080808">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Igreja">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <title>Reino & Graça — Sistema</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -286,6 +290,8 @@ input,select,textarea,button{font-family:inherit}
     <div class="sidebar-section">Ministério</div>
     <div class="sidebar-item" onclick="navTo('louvor')" data-page="louvor"><span class="ni">🎸</span> Louvor</div>
     <div class="sidebar-item" onclick="navTo('mural')" data-page="mural"><span class="ni">📌</span> Mural</div>
+    <div class="sidebar-item" onclick="navTo('oracao')" data-page="oracao"><span class="ni">🙏</span> Oração</div>
+    <div class="sidebar-item" onclick="navTo('carteirinha')" data-page="carteirinha"><span class="ni">🪪</span> Carteirinha</div>
     <div class="sidebar-sep"></div>
     <div class="sidebar-section admin-only">Administração</div>
     <div class="sidebar-item admin-only" onclick="navTo('financeiro')" data-page="financeiro"><span class="ni">💰</span> Financeiro</div>
@@ -323,6 +329,35 @@ input,select,textarea,button{font-family:inherit}
         <div style="font-size:2.2rem;margin-bottom:8px">📞</div>
         <div style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:4px">Falar com o Pastor</div>
         <div style="font-size:.85rem;color:rgba(255,255,255,.75)">Solicitar reunião via WhatsApp</div>
+      </div>
+    </div>
+
+    <!-- ORAÇÃO -->
+    <div class="page" id="page-oracao">
+      <div class="page-header">
+        <div class="page-title">Pedidos de Oração</div>
+        <div class="page-sub">Intercessão e comunhão da igreja</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-primary" onclick="openModalOracao()">+ Novo Pedido</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm oracao-aba active" onclick="setOracaoAba('aberto',this)" style="border-color:var(--brand2);color:var(--brand2)">🔴 Abertos</button>
+        <button class="btn btn-outline btn-sm oracao-aba" onclick="setOracaoAba('orado',this)" style="border-color:#22c55e;color:#22c55e">✅ Orados</button>
+        <button class="btn btn-outline btn-sm oracao-aba" onclick="setOracaoAba('todos',this)">Todos</button>
+      </div>
+      <div id="oracao-lista"></div>
+    </div>
+
+    <!-- CARTEIRINHA -->
+    <div class="page" id="page-carteirinha">
+      <div class="page-header">
+        <div class="page-title">Minha Carteirinha</div>
+        <div class="page-sub">Identificação de membro</div>
+      </div>
+      <div id="carteirinha-container" style="display:flex;justify-content:center;padding:8px 0 24px"></div>
+      <div style="text-align:center;margin-top:8px">
+        <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
       </div>
     </div>
 
@@ -1198,6 +1233,8 @@ function navTo(page){
   if(page==='financeiro')renderFinanceiro();
   if(page==='usuarios')renderUsuarios();
   if(page==='configuracoes')renderConfig();
+  if(page==='oracao')renderOracao();
+  if(page==='carteirinha')renderCarteirinha();
 }
 
 function toggleMore(){document.getElementById('nav-more').classList.toggle('open');}
@@ -2451,6 +2488,140 @@ async function verificarAlertaCotista(){
   }).join('');
 }
 
+// ── ORAÇÃO ────────────────────────────────────────────────────────
+let _oracaoAba = 'aberto';
+let DATA_ORACOES = [];
+
+function setOracaoAba(aba, el){
+  _oracaoAba = aba;
+  document.querySelectorAll('.oracao-aba').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderOracao();
+}
+
+async function renderOracao(){
+  if(!DATA_ORACOES.length) DATA_ORACOES = await api('/api/oracoes').catch(()=>[]);
+  const lista = document.getElementById('oracao-lista');
+  let items = DATA_ORACOES;
+  if(_oracaoAba !== 'todos') items = items.filter(p => p.status === _oracaoAba);
+  if(!items.length){
+    lista.innerHTML='<div class="empty"><div class="empty-icon">🙏</div><p>Nenhum pedido ' + (_oracaoAba==='aberto'?'aberto':_oracaoAba==='orado'?'orado ainda':'cadastrado') + '</p></div>';
+    return;
+  }
+  const isAdm = USER && USER.perms && USER.perms.p_usuarios;
+  lista.innerHTML = items.map(p => {
+    const cor = p.status==='orado' ? '#22c55e' : p.status==='encerrado' ? '#9b9296' : '#f59e0b';
+    const badge = p.status==='orado'?'✅ Orado':p.status==='encerrado'?'Encerrado':'🔴 Aberto';
+    return `<div class="card" style="margin-bottom:12px;border-left:3px solid ${cor}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div style="flex:1">
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:6px">
+            <span style="font-weight:600">${p.privado?'🔒 ':''}${p.nome_solicitante}</span>
+            <span style="margin-left:8px">${fmtDataBr(p.criado_em)}</span>
+          </div>
+          <div style="font-size:.9rem;line-height:1.6;white-space:pre-wrap">${p.texto}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+          <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;background:${cor}22;color:${cor};border:1px solid ${cor}44;white-space:nowrap">${badge}</span>
+          ${isAdm ? `<div style="display:flex;gap:4px">
+            ${p.status!=='orado'?`<button class="btn btn-ghost btn-sm" onclick="setStatusOracao(${p.id},'orado')" title="Marcar como orado" style="font-size:.75rem">✅</button>`:''}
+            ${p.status!=='aberto'?`<button class="btn btn-ghost btn-sm" onclick="setStatusOracao(${p.id},'aberto')" title="Reabrir" style="font-size:.75rem">🔄</button>`:''}
+            <button class="btn btn-ghost btn-sm" onclick="delOracao(${p.id})" style="font-size:.75rem">🗑️</button>
+          </div>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openModalOracao(){
+  document.getElementById('orac-texto').value='';
+  document.getElementById('orac-anonimo').checked=false;
+  document.getElementById('orac-privado').checked=false;
+  document.getElementById('modal-oracao').style.display='flex';
+}
+
+async function salvarOracao(){
+  const texto = document.getElementById('orac-texto').value.trim();
+  if(!texto){toast('Escreva o pedido','error');return;}
+  const r = await api('/api/oracoes',{method:'POST',body:JSON.stringify({
+    texto, anonimo: document.getElementById('orac-anonimo').checked,
+    privado: document.getElementById('orac-privado').checked
+  })});
+  if(!r.ok){toast('Erro ao salvar','error');return;}
+  DATA_ORACOES.unshift(r.pedido);
+  document.getElementById('modal-oracao').style.display='none';
+  renderOracao(); toast('Pedido enviado! 🙏','success');
+}
+
+async function setStatusOracao(id, status){
+  const r = await api(`/api/oracoes/${id}/status`,{method:'PUT',body:JSON.stringify({status})});
+  if(r.ok){const i=DATA_ORACOES.findIndex(p=>p.id===id);if(i>=0)DATA_ORACOES[i]=r.pedido;renderOracao();}
+}
+
+async function delOracao(id){
+  if(!confirm('Excluir pedido?'))return;
+  await api(`/api/oracoes/${id}`,{method:'DELETE'});
+  DATA_ORACOES=DATA_ORACOES.filter(p=>p.id!==id);renderOracao();
+}
+
+// ── CARTEIRINHA ───────────────────────────────────────────────────
+async function renderCarteirinha(){
+  const el = document.getElementById('carteirinha-container');
+  // Busca dados do membro correspondente ao usuário logado (por nome)
+  const membros = DATA.membros || [];
+  const nomeLower = (USER.nome||'').toLowerCase();
+  const membro = membros.find(m => m.nome.toLowerCase() === nomeLower)
+                 || membros.find(m => nomeLower.startsWith(m.nome.toLowerCase().split(' ')[0].toLowerCase()))
+                 || {nome: USER.nome, status:'Ativo', foto:'', id: USER.id};
+
+  const igreja = CONFIG.nome_igreja || 'Igreja';
+  const pastor = CONFIG.nome_pastor || 'Pastor';
+  const foto = membro.foto
+    ? `<img src="${membro.foto}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid rgba(225,29,42,.5)">`
+    : `<div style="width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--brand),#7a0d14);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#fff;border:3px solid rgba(225,29,42,.5)">${iniciais(membro.nome)}</div>`;
+
+  const qrData = encodeURIComponent(`MEMBRO:${membro.id}:${membro.nome}:${igreja}`);
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=90x90&color=f5f0f0&bgcolor=161616&data=${qrData}`;
+  const idNum = String(membro.id || USER.id).padStart(6,'0');
+
+  el.innerHTML = `
+    <div style="width:320px;background:linear-gradient(145deg,#1a0a0d,#0f0f0f);border:1px solid rgba(225,29,42,.3);border-radius:18px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.7);font-family:'Inter',sans-serif">
+      <!-- topo -->
+      <div style="background:linear-gradient(90deg,#e11d2a,#7a0d14);padding:14px 18px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:1.5rem">✝</span>
+        <div>
+          <div style="font-family:'Cinzel',serif;font-size:.85rem;font-weight:700;color:#fff">${igreja}</div>
+          <div style="font-size:.65rem;color:rgba(255,255,255,.7);letter-spacing:.1em;text-transform:uppercase">Carteirinha de Membro</div>
+        </div>
+      </div>
+      <!-- corpo -->
+      <div style="padding:20px 18px;display:flex;gap:16px;align-items:center">
+        ${foto}
+        <div style="flex:1">
+          <div style="font-size:1rem;font-weight:700;color:#f5f0f0;line-height:1.2;margin-bottom:6px">${membro.nome}</div>
+          <div style="font-size:.7rem;color:rgba(225,29,42,.9);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">${membro.status || 'Ativo'}</div>
+          <div style="font-size:.68rem;color:#9b9296">Nº ${idNum}</div>
+          ${membro.nasc?`<div style="font-size:.68rem;color:#9b9296;margin-top:2px">Nasc. ${fmtDataBr(membro.nasc)}</div>`:''}
+        </div>
+      </div>
+      <!-- rodapé com QR -->
+      <div style="padding:0 18px 18px;display:flex;align-items:flex-end;justify-content:space-between">
+        <div>
+          <div style="font-size:.65rem;color:#9b9296;margin-bottom:2px">Pastoral</div>
+          <div style="font-size:.75rem;color:#f5f0f0;font-weight:600">${pastor}</div>
+          <div style="font-size:.6rem;color:#9b9296;margin-top:8px;letter-spacing:.05em">VÁLIDA ENQUANTO CONFIRMADA</div>
+        </div>
+        <img src="${qrUrl}" width="80" height="80" style="border-radius:8px;opacity:.85" onerror="this.style.display='none'">
+      </div>
+    </div>`;
+}
+
+// ── PWA ───────────────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/static/sw.js').catch(()=>{});
+}
+
 // ── CONFIGURAÇÕES ─────────────────────────────────────────────────
 function renderConfig(){
   document.getElementById('cfg-whatsapp').value=CONFIG.whatsapp_secretaria||'';
@@ -2523,6 +2694,35 @@ function enviarWhatsApp(){
   }
 })();
 </script>
+
+<!-- MODAL ORAÇÃO -->
+<div class="modal-overlay" id="modal-oracao" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-header">
+      <h3 class="modal-title">🙏 Novo Pedido de Oração</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-oracao').style.display='none'">×</button>
+    </div>
+    <div style="padding:20px 24px 24px;display:flex;flex-direction:column;gap:14px">
+      <label style="font-size:.85rem;color:var(--text2)">Pedido *
+        <textarea id="orac-texto" rows="4" class="form-control" placeholder="Escreva aqui o motivo do pedido de oração..." style="margin-top:6px;resize:vertical"></textarea>
+      </label>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem">
+          <input type="checkbox" id="orac-anonimo" style="accent-color:var(--brand);width:15px;height:15px">
+          Enviar anonimamente
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem">
+          <input type="checkbox" id="orac-privado" style="accent-color:var(--brand);width:15px;height:15px">
+          Pedido privado (só líderes veem)
+        </label>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn btn-primary" onclick="salvarOracao()" style="flex:1">Enviar Pedido</button>
+        <button class="btn" onclick="document.getElementById('modal-oracao').style.display='none'" style="flex:.5">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL CONFIRMAÇÃO DE MEMBRESIA -->
 <div id="modal-confirmacao-membro" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:20px">

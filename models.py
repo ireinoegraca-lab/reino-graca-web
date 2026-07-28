@@ -152,6 +152,17 @@ class Config(db.Model):
     chave = db.Column(db.String(60), unique=True, nullable=False)
     valor = db.Column(db.Text)
 
+class PedidoOracao(db.Model):
+    __tablename__ = 'pedidos_oracao'
+    id               = db.Column(db.Integer, primary_key=True)
+    texto            = db.Column(db.Text, nullable=False)
+    nome_solicitante = db.Column(db.String(120))   # null = anônimo
+    membro_id        = db.Column(db.Integer, db.ForeignKey('membros.id'), nullable=True)
+    privado          = db.Column(db.Boolean, default=False)
+    status           = db.Column(db.String(20), default='aberto')  # aberto | orado | encerrado
+    criado_em        = db.Column(db.DateTime, default=datetime.utcnow)
+    membro           = db.relationship('Membro')
+
 class MuralPost(db.Model):
     __tablename__ = 'mural'
     id           = db.Column(db.Integer, primary_key=True)

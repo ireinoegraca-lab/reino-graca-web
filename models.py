@@ -38,7 +38,8 @@ class Usuario(UserMixin, db.Model):
     role          = db.Column(db.String(20), default='membro')
     status        = db.Column(db.String(20), default='ativo')   # ativo | pendente | bloqueado
     perfil_id     = db.Column(db.Integer, db.ForeignKey('perfis.id'), nullable=True)
-    ministerio_id = db.Column(db.Integer, db.ForeignKey('ministerios.id'), nullable=True)
+    ministerio_id       = db.Column(db.Integer, db.ForeignKey('ministerios.id'), nullable=True)
+    ultima_confirmacao  = db.Column(db.String(10))   # YYYY-MM-DD
 
     def set_senha(self, s): self.senha_hash = generate_password_hash(s)
     def check_senha(self, s): return check_password_hash(self.senha_hash, s)

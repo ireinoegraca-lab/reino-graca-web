@@ -526,6 +526,8 @@ input,select,textarea,button{font-family:inherit}
           style="background:none;border:none;color:var(--brand2);font-weight:700;font-size:.85rem;padding:8px 16px;cursor:pointer;border-bottom:2px solid var(--brand2)">👥 Usuários</button>
         <button id="tab-perfis-btn" onclick="switchUsuariosTab('perfis')"
           style="background:none;border:none;color:var(--muted);font-weight:600;font-size:.85rem;padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent">🎭 Perfis</button>
+        <button id="tab-confirmacao-btn" onclick="switchUsuariosTab('confirmacao')"
+          style="background:none;border:none;color:var(--muted);font-weight:600;font-size:.85rem;padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent">🔄 Confirmações <span id="badge-sem-conf" style="display:none;background:var(--brand);color:#fff;font-size:.65rem;padding:1px 6px;border-radius:10px;margin-left:4px"></span></button>
       </div>
       <!-- Aba Usuários -->
       <div id="tab-usuarios">
@@ -538,6 +540,11 @@ input,select,textarea,button{font-family:inherit}
         </div>
         <div id="usuarios-list"></div>
       </div>
+      <!-- Aba Confirmações -->
+      <div id="tab-confirmacao" style="display:none">
+        <div id="confirmacao-lista"></div>
+      </div>
+
       <!-- Aba Perfis -->
       <div id="tab-perfis" style="display:none">
         <div class="toolbar">
@@ -1102,6 +1109,8 @@ async function doLogin(){
   applyRole();
   await loadAll();
   navTo('dashboard');
+  verificarPendentesAdmin();
+  if(data.user.precisa_confirmar) mostrarModalConfirmacao();
 }
 
 async function doLogout(){
@@ -1146,8 +1155,8 @@ async function verificarPendentes(){
 
 async function checkSession(){
   const res=await fetch('/api/me');
-  if(res.ok){const d=await res.json();if(d.ok){USER=d.user;return true;}}
-  return false;
+  if(res.ok){const d=await res.json();if(d.ok){USER=d.user;return d.user;}}
+  return null;
 }
 
 // ── LOAD DATA ─────────────────────────────────────────────────────
@@ -1897,7 +1906,10 @@ function switchUsuariosTab(tab){
   document.getElementById('tab-perfis').style.display=tab==='perfis'?'':'none';
   document.getElementById('tab-usuarios-btn').style.cssText='background:none;border:none;color:var(--brand2);font-weight:700;font-size:.85rem;padding:8px 16px;cursor:pointer;border-bottom:2px solid '+(tab==='usuarios'?'var(--brand2)':'transparent');
   document.getElementById('tab-perfis-btn').style.cssText='background:none;border:none;color:'+(tab==='perfis'?'var(--brand2)':'var(--muted)')+';font-weight:'+(tab==='perfis'?'700':'600')+';font-size:.85rem;padding:8px 16px;cursor:pointer;border-bottom:2px solid '+(tab==='perfis'?'var(--brand2)':'transparent');
+  document.getElementById('tab-confirmacao').style.display=tab==='confirmacao'?'':'none';
+  document.getElementById('tab-confirmacao-btn').style.cssText='background:none;border:none;color:'+(tab==='confirmacao'?'var(--brand2)':'var(--muted)')+';font-weight:'+(tab==='confirmacao'?'700':'600')+';font-size:.85rem;padding:8px 16px;cursor:pointer;border-bottom:2px solid '+(tab==='confirmacao'?'var(--brand2)':'transparent');
   if(tab==='perfis') renderPerfis();
+  if(tab==='confirmacao') renderConfirmacoes();
 }
 
 function statusBadge(s){
@@ -2145,6 +2157,84 @@ async function responderIA(q){
     return `🤔 Não entendi. Tente:\n• "Quantos membros ativos?"\n• "Aniversários este mês"\n• "Saldo financeiro do mês"\n• "Próximos eventos"\n• "Músicas no repertório"`;
   }catch(e){return '⚠️ Erro ao buscar dados. Tente novamente.';}
 }
+// ── CONFIRMAÇÃO DE MEMBRESIA ──────────────────────────────────────
+function mostrarModalConfirmacao(){
+  const el=document.getElementById('conf-nome-igreja');
+  if(el) el.textContent=CONFIG.nome_igreja||'nossa igreja';
+  document.getElementById('modal-confirmacao-membro').style.display='flex';
+  const chk=document.getElementById('chk-confirmacao');
+  const btn=document.getElementById('btn-confirmar-membro');
+  chk.checked=false; btn.style.opacity='.5'; btn.disabled=true;
+  chk.onchange=()=>{btn.disabled=!chk.checked;btn.style.opacity=chk.checked?'1':'.5';};
+}
+
+async function confirmarMembresia(){
+  const r=await api('/api/confirmar-membro',{method:'POST',body:'{}'});
+  if(r.ok){
+    USER.precisa_confirmar=false;
+    document.getElementById('modal-confirmacao-membro').style.display='none';
+    toast('Membresia confirmada! Obrigado 🙏','success');
+  }
+}
+
+function sairSemConfirmar(){
+  document.getElementById('modal-confirmacao-membro').style.display='none';
+  doLogout();
+}
+
+async function renderConfirmacoes(){
+  const el=document.getElementById('confirmacao-lista');
+  el.innerHTML='<div style="color:var(--muted);font-size:.85rem;padding:20px 0">Carregando...</div>';
+  const lista=await api('/api/usuarios/sem-confirmacao').catch(()=>[]);
+  const badge=document.getElementById('badge-sem-conf');
+  if(!Array.isArray(lista)||!lista.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">✅</div><p>Todos os membros confirmaram!</p></div>';
+    if(badge){badge.style.display='none';}
+    return;
+  }
+  if(badge){badge.textContent=lista.length;badge.style.display='inline';}
+  el.innerHTML=`
+    <div style="background:rgba(225,29,42,.07);border:1px solid rgba(225,29,42,.2);border-radius:12px;padding:16px;margin-bottom:16px">
+      <div style="font-weight:700;margin-bottom:4px">⚠️ ${lista.length} membro${lista.length>1?'s':''} sem confirmação nos últimos 6 meses</div>
+      <div style="font-size:.82rem;color:var(--muted)">Decida o que fazer com cada cadastro: aguardar, bloquear ou excluir.</div>
+    </div>
+    ${lista.map(u=>{
+      const dias=u.dias_sem_confirmar;
+      const desde=u.ultima_confirmacao?`Última confirmação: ${fmtDataBr(u.ultima_confirmacao)} (${dias} dias atrás)`:'Nunca confirmou';
+      return `<div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div style="font-weight:600;font-size:.9rem">${u.nome}</div>
+          <div style="font-size:.76rem;color:var(--muted);margin-top:2px">${u.usuario} · ${u.perfil_nome}</div>
+          <div style="font-size:.74rem;color:var(--brand2);margin-top:3px">${desde}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick="bloquearUsuario(${u.id},this)" style="font-size:.76rem">🔒 Bloquear</button>
+          <button class="btn btn-ghost btn-sm" onclick="delUsuarioConf(${u.id})" style="font-size:.76rem;color:var(--brand2)">🗑️ Excluir</button>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+async function bloquearUsuario(uid, btn){
+  const r=await api(`/api/usuarios/${uid}/bloquear`,{method:'POST',body:'{}'});
+  if(r.ok){toast(r.status==='bloqueado'?'Usuário bloqueado':'Usuário reativado','success');renderConfirmacoes();}
+}
+
+async function delUsuarioConf(uid){
+  if(!confirm('Excluir permanentemente este usuário?')) return;
+  await api(`/api/usuarios/${uid}`,{method:'DELETE'});
+  toast('Usuário excluído','success'); renderConfirmacoes();
+}
+
+async function verificarPendentesAdmin(){
+  if(!USER||!USER.perms||!USER.perms.p_usuarios) return;
+  const lista=await api('/api/usuarios/sem-confirmacao').catch(()=>[]);
+  const badge=document.getElementById('badge-sem-conf');
+  if(badge&&Array.isArray(lista)&&lista.length){
+    badge.textContent=lista.length; badge.style.display='inline';
+  }
+}
+
 // ── CAMPANHAS ─────────────────────────────────────────────────────
 function renderCampanhas(){
   const el=document.getElementById('fin-campanhas-lista');
@@ -2428,9 +2518,33 @@ function enviarWhatsApp(){
     document.getElementById('tb-user').textContent=USER.nome.split(' ')[0];
     document.getElementById('tb-avatar').textContent=iniciais(USER.nome);
     applyRole();await loadAll();navTo('dashboard');
+    verificarPendentesAdmin();
+    if(ok.precisa_confirmar) mostrarModalConfirmacao();
   }
 })();
 </script>
+
+<!-- MODAL CONFIRMAÇÃO DE MEMBRESIA -->
+<div id="modal-confirmacao-membro" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--card);border:1px solid var(--line);border-radius:24px;max-width:400px;width:100%;text-align:center;padding:36px 28px;box-shadow:0 24px 60px rgba(0,0,0,.6)">
+    <div style="font-size:2.8rem;margin-bottom:16px">✝️</div>
+    <div style="font-family:'Cinzel',serif;font-size:1.2rem;font-weight:700;margin-bottom:8px">Confirmação de Membresia</div>
+    <p style="font-size:.88rem;color:var(--muted);line-height:1.6;margin-bottom:24px">
+      Já faz 6 meses desde sua última confirmação.<br>
+      Para continuar usando o sistema, confirme que você ainda é membro ativo da igreja.
+    </p>
+    <div style="background:rgba(225,29,42,.08);border:1px solid rgba(225,29,42,.2);border-radius:12px;padding:14px;margin-bottom:24px;font-size:.85rem;color:var(--muted);text-align:left;display:flex;gap:10px;align-items:flex-start">
+      <input type="checkbox" id="chk-confirmacao" style="margin-top:3px;accent-color:var(--brand);width:16px;height:16px;flex-shrink:0">
+      <label for="chk-confirmacao" style="cursor:pointer;line-height:1.5">Confirmo que sou membro ativo e desejo continuar participando da <strong id="conf-nome-igreja">nossa igreja</strong>.</label>
+    </div>
+    <button id="btn-confirmar-membro" onclick="confirmarMembresia()" class="btn btn-primary" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;border-radius:12px;border:none;cursor:pointer;opacity:.5" disabled>
+      Confirmar Membresia
+    </button>
+    <div style="margin-top:14px">
+      <button onclick="sairSemConfirmar()" style="background:none;border:none;color:var(--muted);font-size:.8rem;cursor:pointer;text-decoration:underline;font-family:inherit">Sair e confirmar depois</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL CAMPANHA -->
 <div class="modal-overlay" id="modal-campanha" onclick="if(event.target===this)this.style.display='none'">

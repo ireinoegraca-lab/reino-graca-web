@@ -26,10 +26,23 @@ def has_perm(p):
 def is_admin(): return has_perm('p_usuarios')
 def can_manage(mid): return is_admin() or (current_user.is_authenticated and current_user.ministerio_id==mid and has_perm('p_ministerios'))
 
+MESES_CONFIRMACAO = 6
+
+def precisa_confirmar(u):
+    """True se o usuário nunca confirmou ou passaram mais de 6 meses."""
+    if u.role in ('admin',): return False          # admins não precisam confirmar
+    if not u.ultima_confirmacao: return True
+    from datetime import date, timedelta
+    try:
+        ultima = date.fromisoformat(u.ultima_confirmacao)
+        return (date.today() - ultima).days > MESES_CONFIRMACAO * 30
+    except: return True
+
 def serialize_usuario(u):
     return {'id':u.id,'nome':u.nome,'usuario':u.usuario,'role':u.role,'status':u.status or 'ativo',
             'perfil_id':u.perfil_id,'perfil_nome':u.perfil.nome if u.perfil else u.role,
-            'ministerio_id':u.ministerio_id,'perms':u.get_perms()}
+            'ministerio_id':u.ministerio_id,'perms':u.get_perms(),
+            'ultima_confirmacao':u.ultima_confirmacao,'precisa_confirmar':precisa_confirmar(u)}
 def serialize_membro(m):
     return {'id':m.id,'nome':m.nome,'nasc':m.nasc or '','tel':m.tel or '','email':m.email or '',
             'profissao':m.profissao or '','status':m.status or 'Ativo','bairro':m.bairro or '',
@@ -89,7 +102,8 @@ def api_login():
         return jsonify({'ok':False,'msg':'Cadastro aguardando aprovação do administrador.'}), 403
     login_user(u, remember=True)
     return jsonify({'ok':True,'user':{'id':u.id,'nome':u.nome,'role':u.role,'status':u.status,
-                                      'ministerio_id':u.ministerio_id,'perfil_id':u.perfil_id,'perms':u.get_perms()}})
+                                      'ministerio_id':u.ministerio_id,'perfil_id':u.perfil_id,
+                                      'perms':u.get_perms(),'precisa_confirmar':precisa_confirmar(u)}})
 
 @app.route('/api/register', methods=['POST'])
 def api_register():
@@ -107,8 +121,9 @@ def api_register():
     profissao = (d.get('profissao') or '').strip()
     bairro    = (d.get('bairro')    or '').strip()
     perfil_membro = Perfil.query.filter_by(nome='Membro').first()
+    hoje = date.today().isoformat()
     u = Usuario(nome=nome, usuario=usuario, role='membro', status='pendente',
-                perfil_id=perfil_membro.id if perfil_membro else None)
+                perfil_id=perfil_membro.id if perfil_membro else None, ultima_confirmacao=hoje)
     u.set_senha(senha)
     db.session.add(u)
     m = Membro(nome=nome, email=email, tel=tel, nasc=nasc or None, status='Ativo',
@@ -129,7 +144,8 @@ def api_me():
         return jsonify({'ok':False}), 401
     u = current_user
     return jsonify({'ok':True,'user':{'id':u.id,'nome':u.nome,'role':u.role,'status':u.status,
-                                      'ministerio_id':u.ministerio_id,'perfil_id':u.perfil_id,'perms':u.get_perms()}})
+                                      'ministerio_id':u.ministerio_id,'perfil_id':u.perfil_id,
+                                      'perms':u.get_perms(),'precisa_confirmar':precisa_confirmar(u)}})
 
 # ── MEMBROS ───────────────────────────────────────────────────────
 @app.route('/api/membros')
@@ -549,6 +565,24 @@ def get_usuarios():
     if not is_admin(): return jsonify({'ok':False}), 403
     return jsonify([serialize_usuario(u) for u in Usuario.query.order_by(Usuario.nome).all()])
 
+@app.route('/api/confirmar-membro', methods=['POST'])
+@login_required
+def confirmar_membro():
+    current_user.ultima_confirmacao = date.today().isoformat()
+    db.session.commit()
+    return jsonify({'ok':True,'data':current_user.ultima_confirmacao})
+
+@app.route('/api/usuarios/sem-confirmacao')
+@login_required
+def get_sem_confirmacao():
+    if not is_admin(): return jsonify({'ok':False}), 403
+    lista = []
+    for u in Usuario.query.filter(Usuario.status=='ativo', Usuario.role!='admin').all():
+        if precisa_confirmar(u):
+            lista.append({**serialize_usuario(u), 'dias_sem_confirmar':
+                (date.today() - date.fromisoformat(u.ultima_confirmacao)).days if u.ultima_confirmacao else None})
+    return jsonify(lista)
+
 @app.route('/api/usuarios/pendentes')
 @login_required
 def get_pendentes():
@@ -729,7 +763,8 @@ def migrate_columns():
         add_col('usuarios',   'perfil_id',   'INTEGER REFERENCES perfis(id)')
         add_col('membros',    'foto',        'TEXT')
         add_col('financeiro', 'campanha_id',      'INTEGER REFERENCES campanhas(id)')
-        add_col('campanhas',  'dia_vencimento',   'INTEGER')
+        add_col('campanhas',  'dia_vencimento',       'INTEGER')
+        add_col('usuarios',   'ultima_confirmacao',   'VARCHAR(10)')
         conn.close()
 
 def init_db():

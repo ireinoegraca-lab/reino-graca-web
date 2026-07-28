@@ -292,6 +292,7 @@ input,select,textarea,button{font-family:inherit}
     <div class="sidebar-item" onclick="navTo('mural')" data-page="mural"><span class="ni">📌</span> Mural</div>
     <div class="sidebar-item" onclick="navTo('oracao')" data-page="oracao"><span class="ni">🙏</span> Oração</div>
     <div class="sidebar-item" onclick="navTo('carteirinha')" data-page="carteirinha"><span class="ni">🪪</span> Carteirinha</div>
+    <div class="sidebar-item" onclick="navTo('guia')" data-page="guia"><span class="ni">📖</span> Guia</div>
     <div class="sidebar-item" onclick="navTo('escala')" data-page="escala"><span class="ni">📋</span> Escala</div>
     <div class="sidebar-item" onclick="navTo('presenca')" data-page="presenca"><span class="ni">✅</span> Presença</div>
     <div class="sidebar-sep"></div>
@@ -334,6 +335,13 @@ input,select,textarea,button{font-family:inherit}
         <div style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:4px">Falar com o Pastor</div>
         <div style="font-size:.85rem;color:rgba(255,255,255,.75)">Solicitar reunião via WhatsApp</div>
       </div>
+    </div>
+
+    <!-- GUIA DE PROFISSÕES -->
+    <div class="page" id="page-guia">
+      <div class="page-header"><div class="page-title">Guia de Profissões</div><div class="page-sub">Encontre membros por área de atuação</div></div>
+      <input class="search-box" id="guia-busca" placeholder="🔍 Buscar nome ou profissão..." oninput="renderGuia()" style="margin-bottom:16px">
+      <div id="guia-lista"></div>
     </div>
 
     <!-- ESCALA DE SERVIÇO -->
@@ -1309,6 +1317,7 @@ function navTo(page){
   if(page==='configuracoes')renderConfig();
   if(page==='oracao')renderOracao();
   if(page==='carteirinha')renderCarteirinha();
+  if(page==='guia')renderGuia();
   if(page==='escala')renderEscala();
   if(page==='presenca')renderPresenca();
   if(page==='orcamento')renderOrcamento();
@@ -2972,6 +2981,29 @@ function enviarWhatsApp(){
 </div>
 
 <script>
+// ── GUIA DE PROFISSÕES ────────────────────────────────────────────
+function renderGuia(){
+  const q = (document.getElementById('guia-busca')?.value||'').toLowerCase();
+  const membros = (DATA.membros||[]).filter(m=>m.status==='Ativo'&&m.profissao&&(!q||m.nome.toLowerCase().includes(q)||m.profissao.toLowerCase().includes(q)));
+  const el = document.getElementById('guia-lista');
+  if(!membros.length){ el.innerHTML='<div class="empty">Nenhum profissional encontrado.</div>'; return; }
+  const grupos = {};
+  membros.forEach(m=>{ const p=m.profissao||'Outros'; if(!grupos[p])grupos[p]=[]; grupos[p].push(m); });
+  el.innerHTML = Object.keys(grupos).sort().map(prof=>`
+    <div style="margin-bottom:20px">
+      <div style="font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--primary);padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:8px">${prof}</div>
+      ${grupos[prof].map(m=>`
+        <div class="list-item" style="margin-bottom:6px">
+          <div class="list-avatar">${iniciais(m.nome)}</div>
+          <div class="list-info">
+            <div class="list-nome">${m.nome}</div>
+            <div class="list-sub">${m.ministerio_nome||''}</div>
+          </div>
+          ${m.tel?`<a href="https://wa.me/55${m.tel.replace(/\D/g,'')}" target="_blank" style="margin-left:auto;font-size:.8rem;color:var(--green);text-decoration:none;white-space:nowrap">📱 ${m.tel}</a>`:''}
+        </div>`).join('')}
+    </div>`).join('');
+}
+
 // ── ESCALA DE SERVIÇO ─────────────────────────────────────────────
 let escalasData = [];
 

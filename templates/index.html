@@ -304,6 +304,7 @@ input,select,textarea,button{font-family:inherit}
         <div class="page-title">Dashboard</div>
         <div class="page-sub">Visão geral da Igreja</div>
       </div>
+      <div id="dash-alerta-cotista" style="display:none"></div>
       <div class="stat-row" id="dash-stats"></div>
       <div class="card">
         <div class="card-title">🎂 Aniversariantes do mês</div>
@@ -469,6 +470,8 @@ input,select,textarea,button{font-family:inherit}
       <div class="card" id="fin-cats" style="display:none;margin-bottom:12px"></div>
       <!-- campanhas -->
       <div id="fin-campanhas-container" style="display:none">
+        <!-- painel de lembretes -->
+        <div id="fin-lembretes-painel" style="display:none;margin-bottom:16px"></div>
         <div id="fin-campanhas-lista"></div>
       </div>
       <!-- busca + tabela -->
@@ -1174,6 +1177,7 @@ function toggleMore(){document.getElementById('nav-more').classList.toggle('open
 
 // ── DASHBOARD ────────────────────────────────────────────────────
 function renderDashboard(){
+  verificarAlertaCotista();
   const m=DATA.membros,hoje=new Date().toISOString().split('T')[0],mes=hoje.slice(5,7);
   document.getElementById('dash-stats').innerHTML=`
     <div class="stat-card"><div class="stat-val">${m.length}</div><div class="stat-lbl">Membros</div></div>
@@ -1704,7 +1708,7 @@ function setFinAba(aba,el){
   document.getElementById('fin-cats').style.display=isCamp?'none':'';
   document.getElementById('btn-nova-campanha').style.display=isCamp?'':'none';
   document.getElementById('btn-novo-lancamento').style.display=isCamp?'none':'';
-  if(isCamp) renderCampanhas(); else renderFinanceiro();
+  if(isCamp){renderCampanhas();renderLembretes();}else renderFinanceiro();
 }
 
 function renderFinanceiro(){
@@ -2188,6 +2192,7 @@ function openModalCampanha(id){
   document.getElementById('camp-meta').value=c?c.meta||'':'';
   document.getElementById('camp-inicio').value=c?c.data_inicio||'':'';
   document.getElementById('camp-fim').value=c?c.data_fim||'':'';
+  document.getElementById('camp-venc').value=c&&c.dia_vencimento?c.dia_vencimento:'';
   document.getElementById('modal-campanha').style.display='flex';
 }
 
@@ -2198,7 +2203,8 @@ async function salvarCampanha(){
   const body={nome,descricao:document.getElementById('camp-desc').value,
     meta:parseFloat(document.getElementById('camp-meta').value)||0,
     data_inicio:document.getElementById('camp-inicio').value||null,
-    data_fim:document.getElementById('camp-fim').value||null};
+    data_fim:document.getElementById('camp-fim').value||null,
+    dia_vencimento:document.getElementById('camp-venc').value||null};
   let r;
   if(id){
     r=await api(`/api/campanhas/${id}`,{method:'PUT',body:JSON.stringify(body)});
@@ -2266,6 +2272,75 @@ async function removerCotista(campId,coId){
   const idx=DATA.campanhas.findIndex(c=>c.id===campId);
   if(idx>=0) DATA.campanhas[idx]=r.campanha;
   openModalCotistas(campId);
+}
+
+async function renderLembretes(){
+  const painel=document.getElementById('fin-lembretes-painel');
+  const lista=await api('/api/campanhas/lembretes?dias=5');
+  if(!Array.isArray(lista)||!lista.length){painel.style.display='none';return;}
+  const vencidos=lista.filter(l=>l.status==='vencido');
+  const hoje=lista.filter(l=>l.status==='hoje');
+  const proximos=lista.filter(l=>l.status==='proximo');
+  painel.style.display='';
+  painel.innerHTML=`
+    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:16px;margin-bottom:4px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:.95rem">🔔 Lembretes de Vencimento</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${vencidos.length?`<span style="background:#e11d2a22;color:#e11d2a;font-size:.72rem;padding:3px 10px;border-radius:20px;font-weight:700">${vencidos.length} vencido${vencidos.length>1?'s':''}</span>`:''}
+          ${hoje.length?`<span style="background:#f59e0b22;color:#f59e0b;font-size:.72rem;padding:3px 10px;border-radius:20px;font-weight:700">${hoje.length} vence hoje</span>`:''}
+          ${proximos.length?`<span style="background:#22c55e22;color:#22c55e;font-size:.72rem;padding:3px 10px;border-radius:20px;font-weight:700">${proximos.length} próximo${proximos.length>1?'s':''}</span>`:''}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${lista.map(l=>{
+          const cor=l.status==='vencido'?'#e11d2a':l.status==='hoje'?'#f59e0b':'#22c55e';
+          const badge=l.status==='vencido'?`${Math.abs(l.dias_para_vencer)}d atrasado`:l.status==='hoje'?'Vence hoje':`${l.dias_para_vencer}d restantes`;
+          const tel=(l.tel||'').replace(/\D/g,'');
+          const msg=encodeURIComponent(`Olá ${l.membro_nome.split(' ')[0]}! 😊\n\nPassando para lembrar que seu compromisso com a campanha *${l.campanha_nome}* vence ${l.status==='hoje'?'hoje':l.status==='vencido'?`há ${Math.abs(l.dias_para_vencer)} dia${Math.abs(l.dias_para_vencer)>1?'s':''}`:`dia ${new Date(l.vencimento+'T12:00:00').toLocaleDateString('pt-BR')}`}.\n\nValor: *${fmtMoeda(l.valor_mensal)}*\n\nGratidão pela sua fidelidade! 🙏`);
+          const waLink=tel?`https://wa.me/55${tel}?text=${msg}`:'';
+          return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg2,var(--bg));border-radius:8px;border-left:3px solid ${cor};flex-wrap:wrap;gap:8px">
+            <div style="flex:1;min-width:150px">
+              <div style="font-size:.83rem;font-weight:600">${l.membro_nome}</div>
+              <div style="font-size:.74rem;color:var(--muted)">${l.campanha_nome} · ${fmtMoeda(l.valor_mensal)}/mês</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:.72rem;padding:2px 8px;border-radius:20px;background:${cor}22;color:${cor};font-weight:700">${badge}</span>
+              ${waLink?`<a href="${waLink}" target="_blank" style="text-decoration:none"><button class="btn btn-sm" style="background:#25d366;color:#fff;border:none;font-size:.75rem;padding:5px 10px">📱 WhatsApp</button></a>`:`<span style="font-size:.72rem;color:var(--muted)">sem tel.</span>`}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+async function verificarAlertaCotista(){
+  // Mostra aviso no dashboard se o usuário logado é cotista de alguma campanha com vencimento próximo
+  const el=document.getElementById('dash-alerta-cotista');
+  if(!el)return;
+  const nome=(USER&&USER.nome||'').toLowerCase();
+  const hoje=new Date();
+  const alertas=[];
+  (DATA.campanhas||[]).filter(c=>c.status==='ativa'&&c.dia_vencimento).forEach(c=>{
+    const cotista=c.cotistas.find(co=>co.nome.toLowerCase().includes(nome.split(' ')[0])||nome.includes(co.nome.toLowerCase().split(' ')[0]));
+    if(!cotista)return;
+    const dia=Math.min(c.dia_vencimento,28);
+    const venc=new Date(hoje.getFullYear(),hoje.getMonth(),dia);
+    const diff=Math.round((venc-hoje)/(1000*60*60*24));
+    if(diff>=-1&&diff<=5) alertas.push({campanha:c.nome,valor:cotista.valor_mensal,diff,venc});
+  });
+  if(!alertas.length){el.style.display='none';return;}
+  el.style.display='';
+  el.innerHTML=alertas.map(a=>{
+    const txt=a.diff<0?'venceu ontem':a.diff===0?'vence <strong>hoje</strong>':`vence em <strong>${a.diff} dia${a.diff>1?'s':''}</strong>`;
+    return `<div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:1.5rem">🔔</span>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.9rem">Lembrete de pagamento</div>
+        <div style="font-size:.83rem;color:var(--text2);margin-top:2px">Sua cota da campanha <strong>${a.campanha}</strong> (${fmtMoeda(a.valor)}) ${txt}.</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ── CONFIGURAÇÕES ─────────────────────────────────────────────────
@@ -2347,6 +2422,12 @@ function enviarWhatsApp(){
           <input id="camp-fim" type="date" class="form-control" style="margin-top:4px">
         </label>
       </div>
+      <label style="font-size:.85rem;color:var(--text2)">📅 Dia de vencimento mensal (para lembretes)
+        <select id="camp-venc" class="form-control" style="margin-top:4px">
+          <option value="">— sem lembrete —</option>
+          ${Array.from({length:28},(_,i)=>`<option value="${i+1}">Todo dia ${i+1}</option>`).join('')}
+        </select>
+      </label>
       <div style="display:flex;gap:10px;margin-top:4px">
         <button class="btn btn-primary" onclick="salvarCampanha()" style="flex:1">Salvar</button>
         <button class="btn" onclick="document.getElementById('modal-campanha').style.display='none'" style="flex:.5">Cancelar</button>

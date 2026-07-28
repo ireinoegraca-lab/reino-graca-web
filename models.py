@@ -119,8 +119,9 @@ class Campanha(db.Model):
     meta        = db.Column(db.Float, default=0)
     data_inicio = db.Column(db.String(10))
     data_fim    = db.Column(db.String(10))
-    status      = db.Column(db.String(20), default='ativa')
-    cotistas    = db.relationship('CampanhaCotista', backref='campanha', lazy=True, cascade='all,delete')
+    status          = db.Column(db.String(20), default='ativa')
+    dia_vencimento  = db.Column(db.Integer)   # dia do mês (1-28)
+    cotistas        = db.relationship('CampanhaCotista', backref='campanha', lazy=True, cascade='all,delete')
 
 class CampanhaCotista(db.Model):
     __tablename__ = 'campanha_cotistas'

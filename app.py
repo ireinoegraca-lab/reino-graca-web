@@ -56,8 +56,9 @@ def serialize_campanha(c):
     mensal = sum(co.valor_mensal for co in c.cotistas)
     return {'id':c.id,'nome':c.nome,'descricao':c.descricao or '','meta':c.meta or 0,
             'data_inicio':c.data_inicio or '','data_fim':c.data_fim or '','status':c.status or 'ativa',
-            'arrecadado':float(arrecadado),'total_mensal':mensal,
-            'cotistas':[{'id':co.id,'membro_id':co.membro_id,'nome':co.membro.nome,'valor_mensal':co.valor_mensal} for co in c.cotistas]}
+            'dia_vencimento':c.dia_vencimento,'arrecadado':float(arrecadado),'total_mensal':mensal,
+            'cotistas':[{'id':co.id,'membro_id':co.membro_id,'nome':co.membro.nome,
+                         'tel':co.membro.tel or '','valor_mensal':co.valor_mensal} for co in c.cotistas]}
 def serialize_post(p):
     return {'id':p.id,'titulo':p.titulo,'texto':p.texto or '','imagem':p.imagem or '',
             'ministerio_id':p.ministerio_id,'ministerio_nome':p.ministerio.nome if p.ministerio else 'Geral',
@@ -380,8 +381,10 @@ def get_campanhas():
 def add_campanha():
     if not is_admin(): return jsonify({'ok':False}), 403
     d = request.json
+    dv = d.get('dia_vencimento')
     c = Campanha(nome=d['nome'],descricao=d.get('descricao'),meta=float(d.get('meta') or 0),
-                 data_inicio=d.get('data_inicio'),data_fim=d.get('data_fim'),status='ativa')
+                 data_inicio=d.get('data_inicio'),data_fim=d.get('data_fim'),status='ativa',
+                 dia_vencimento=int(dv) if dv else None)
     db.session.add(c); db.session.commit()
     return jsonify({'ok':True,'campanha':serialize_campanha(c)})
 
@@ -393,6 +396,7 @@ def update_campanha(cid):
     for k in ['nome','descricao','data_inicio','data_fim','status']:
         if k in d: setattr(c, k, d[k])
     if 'meta' in d: c.meta = float(d['meta'] or 0)
+    if 'dia_vencimento' in d: c.dia_vencimento = int(d['dia_vencimento']) if d['dia_vencimento'] else None
     db.session.commit()
     return jsonify({'ok':True,'campanha':serialize_campanha(c)})
 
@@ -402,6 +406,35 @@ def del_campanha(cid):
     if not is_admin(): return jsonify({'ok':False}), 403
     c = Campanha.query.get_or_404(cid); db.session.delete(c); db.session.commit()
     return jsonify({'ok':True})
+
+@app.route('/api/campanhas/lembretes')
+@login_required
+def get_lembretes():
+    """Retorna cotistas com vencimento nos próximos N dias ou atrasados."""
+    if not has_perm('p_financeiro'): return jsonify({'ok':False}), 403
+    from datetime import date as dt
+    hoje = dt.today()
+    dias_aviso = int(request.args.get('dias', 5))
+    resultado = []
+    for c in Campanha.query.filter_by(status='ativa').all():
+        if not c.dia_vencimento: continue
+        try:
+            import calendar
+            ultimo_dia = calendar.monthrange(hoje.year, hoje.month)[1]
+            dia = min(c.dia_vencimento, ultimo_dia)
+            venc = dt(hoje.year, hoje.month, dia)
+        except: continue
+        diff = (venc - hoje).days
+        if -7 <= diff <= dias_aviso:
+            for co in c.cotistas:
+                resultado.append({
+                    'campanha_id': c.id, 'campanha_nome': c.nome,
+                    'membro_id': co.membro_id, 'membro_nome': co.membro.nome,
+                    'tel': co.membro.tel or '', 'valor_mensal': co.valor_mensal,
+                    'vencimento': venc.isoformat(), 'dias_para_vencer': diff,
+                    'status': 'vencido' if diff < 0 else 'hoje' if diff == 0 else 'proximo'
+                })
+    return jsonify(resultado)
 
 @app.route('/api/campanhas/<int:cid>/cotistas', methods=['POST'])
 @login_required
@@ -687,7 +720,8 @@ def migrate_columns():
         add_col('usuarios',   'status',      "VARCHAR(20) DEFAULT 'ativo'")
         add_col('usuarios',   'perfil_id',   'INTEGER REFERENCES perfis(id)')
         add_col('membros',    'foto',        'TEXT')
-        add_col('financeiro', 'campanha_id', 'INTEGER REFERENCES campanhas(id)')
+        add_col('financeiro', 'campanha_id',      'INTEGER REFERENCES campanhas(id)')
+        add_col('campanhas',  'dia_vencimento',   'INTEGER')
         conn.close()
 
 def init_db():

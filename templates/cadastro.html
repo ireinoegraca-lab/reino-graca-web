@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#080808">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Cadastro de Membro — {{ nome_igreja }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080808;--bg2:#0f0f0f;--card:#161616;--line:#2c2424;--txt:#f5f0f0;--muted:#9b9296;--brand:#e11d2a;--brand2:#ff4d4d;--green:#22c55e}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;padding:24px 16px 48px;background:radial-gradient(ellipse 80% 50% at 50% 0%,#1a060a 0%,var(--bg) 60%)}
+.wrap{max-width:480px;margin:0 auto}
+.header{text-align:center;margin-bottom:32px;padding-top:16px}
+.emblem{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--brand),#7a0d14);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 16px;box-shadow:0 0 40px rgba(225,29,42,.35)}
+.eyebrow{font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
+h1{font-family:'Cinzel',serif;font-size:1.55rem;font-weight:700;margin-bottom:6px}
+h1 span{color:var(--brand2)}
+.sub{font-size:.84rem;color:var(--muted);line-height:1.5}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px 24px;margin-bottom:24px}
+.section-title{font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:6px}
+input,select,textarea{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:13px 14px;color:var(--txt);font-size:.93rem;outline:none;font-family:inherit;transition:border-color .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--brand)}
+input::placeholder,textarea::placeholder{color:var(--muted)}
+.btn{width:100%;background:var(--brand);color:#fff;border:none;border-radius:12px;padding:15px;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .2s;font-family:inherit;margin-top:8px}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.5;cursor:default}
+.err{color:var(--brand2);font-size:.82rem;margin-top:8px;display:none}
+.success-box{display:none;text-align:center;padding:32px 24px}
+.success-icon{font-size:3rem;margin-bottom:16px}
+.success-title{font-family:'Cinzel',serif;font-size:1.3rem;font-weight:700;margin-bottom:10px;color:var(--green)}
+.success-msg{font-size:.9rem;color:var(--muted);line-height:1.6}
+.required{color:var(--brand2)}
+.hint{font-size:.75rem;color:var(--muted);margin-top:4px}
+@media(max-width:420px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="emblem">✝</div>
+    <div class="eyebrow">{{ nome_igreja }}</div>
+    <h1>Cadastro de <span>Membro</span></h1>
+    <p class="sub">Preencha o formulário abaixo.<br>Seu cadastro será analisado e aprovado pelo administrador.</p>
+  </div>
+
+  <div id="form-area">
+    <!-- Acesso ao sistema -->
+    <div class="card">
+      <div class="section-title">🔐 Acesso ao sistema</div>
+      <div class="field">
+        <label>Nome completo <span class="required">*</span></label>
+        <input id="r-nome" type="text" placeholder="Seu nome completo" autocomplete="name">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Usuário <span class="required">*</span></label>
+          <input id="r-usuario" type="text" placeholder="sem espaços" autocomplete="username" oninput="this.value=this.value.toLowerCase().replace(/\s/g,'')">
+          <div class="hint">Será usado para fazer login</div>
+        </div>
+        <div class="field">
+          <label>Senha <span class="required">*</span></label>
+          <input id="r-senha" type="password" placeholder="mínimo 6 caracteres" autocomplete="new-password">
+        </div>
+      </div>
+    </div>
+
+    <!-- Dados pessoais -->
+    <div class="card">
+      <div class="section-title">👤 Dados pessoais</div>
+      <div class="row">
+        <div class="field">
+          <label>Data de nascimento</label>
+          <input id="r-nasc" type="date">
+        </div>
+        <div class="field">
+          <label>WhatsApp / Telefone</label>
+          <input id="r-tel" type="tel" placeholder="(27) 99999-9999" autocomplete="tel">
+        </div>
+      </div>
+      <div class="field">
+        <label>E-mail</label>
+        <input id="r-email" type="email" placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Profissão</label>
+          <input id="r-profissao" type="text" placeholder="Ex: Professor">
+        </div>
+        <div class="field">
+          <label>Bairro</label>
+          <input id="r-bairro" type="text" placeholder="Ex: Centro">
+        </div>
+      </div>
+    </div>
+
+    <button class="btn" id="btn-cadastrar" onclick="enviar()">Enviar Cadastro</button>
+    <div class="err" id="r-err"></div>
+  </div>
+
+  <!-- Tela de sucesso -->
+  <div id="success-area" style="display:none">
+    <div class="card">
+      <div class="success-box">
+        <div class="success-icon">🙏</div>
+        <div class="success-title">Cadastro enviado!</div>
+        <div class="success-msg">
+          Obrigado! Seu cadastro foi recebido e está aguardando a aprovação do administrador.<br><br>
+          Assim que for aprovado, você receberá acesso ao sistema da <strong>{{ nome_igreja }}</strong>.<br><br>
+          Qualquer dúvida, entre em contato com a secretaria da igreja.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function enviar(){
+  const btn=document.getElementById('btn-cadastrar');
+  const err=document.getElementById('r-err');
+  const nome=document.getElementById('r-nome').value.trim();
+  const usuario=document.getElementById('r-usuario').value.trim();
+  const senha=document.getElementById('r-senha').value;
+  err.style.display='none';
+  if(!nome){err.textContent='Informe seu nome completo.';err.style.display='block';return;}
+  if(!usuario){err.textContent='Informe um nome de usuário.';err.style.display='block';return;}
+  if(senha.length<6){err.textContent='A senha deve ter pelo menos 6 caracteres.';err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Enviando...';
+  try{
+    const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        nome,usuario,senha,
+        email:document.getElementById('r-email').value.trim(),
+        tel:document.getElementById('r-tel').value.trim(),
+        nasc:document.getElementById('r-nasc').value||null,
+        profissao:document.getElementById('r-profissao').value.trim(),
+        bairro:document.getElementById('r-bairro').value.trim()
+      })});
+    const d=await r.json();
+    if(d.ok||d.pendente){
+      document.getElementById('form-area').style.display='none';
+      document.getElementById('success-area').style.display='block';
+    } else {
+      err.textContent=d.msg||'Erro ao enviar. Tente novamente.';
+      err.style.display='block';
+      btn.disabled=false;btn.textContent='Enviar Cadastro';
+    }
+  }catch{
+    err.textContent='Erro de conexão. Tente novamente.';
+    err.style.display='block';
+    btn.disabled=false;btn.textContent='Enviar Cadastro';
+  }
+}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!document.getElementById('btn-cadastrar').disabled)enviar();});
+</script>
+</body>
+</html>

@@ -67,9 +67,14 @@ def serialize_post(p):
 # ── MAIN ──────────────────────────────────────────────────────────
 @app.route('/')
 def index():
-    if current_user.is_authenticated:
-        return render_template('index.html')
     return render_template('index.html')
+
+@app.route('/cadastro')
+def cadastro_publico():
+    cfg = {r.chave: r.valor for r in Config.query.all()}
+    return render_template('cadastro.html',
+                           nome_igreja=cfg.get('nome_igreja','Reino & Graça'),
+                           nome_pastor=cfg.get('nome_pastor','Pastor'))
 
 # ── AUTH ──────────────────────────────────────────────────────────
 @app.route('/api/login', methods=['POST'])
@@ -99,12 +104,15 @@ def api_register():
         return jsonify({'ok':False,'msg':'Nome, usuário e senha são obrigatórios'}), 400
     if Usuario.query.filter_by(usuario=usuario).first():
         return jsonify({'ok':False,'msg':'Usuário já existe. Escolha outro nome de usuário.'}), 409
+    profissao = (d.get('profissao') or '').strip()
+    bairro    = (d.get('bairro')    or '').strip()
     perfil_membro = Perfil.query.filter_by(nome='Membro').first()
     u = Usuario(nome=nome, usuario=usuario, role='membro', status='pendente',
                 perfil_id=perfil_membro.id if perfil_membro else None)
     u.set_senha(senha)
     db.session.add(u)
-    m = Membro(nome=nome, email=email, tel=tel, nasc=nasc or None, status='Ativo')
+    m = Membro(nome=nome, email=email, tel=tel, nasc=nasc or None, status='Ativo',
+               profissao=profissao or None, bairro=bairro or None)
     db.session.add(m)
     db.session.commit()
     return jsonify({'ok':True,'pendente':True,'msg':'Cadastro enviado! Aguarde a aprovação do administrador.'})

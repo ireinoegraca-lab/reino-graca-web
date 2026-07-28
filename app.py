@@ -1,7 +1,7 @@
 import os, base64, io, zlib, struct
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, Response
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from models import db, Perfil, Config, Usuario, Membro, Ministerio, Evento, Musica, Setlist, SetlistItem, Financeiro, Campanha, CampanhaCotista, MuralPost, PedidoOracao
+from models import db, Perfil, Config, Usuario, Membro, Ministerio, Evento, Musica, Setlist, SetlistItem, Financeiro, Campanha, CampanhaCotista, MuralPost, PedidoOracao, Escala, EscalaItem, Presenca, OrcamentoItem
 from datetime import datetime, date
 
 def make_icon_png(size):
@@ -795,6 +795,135 @@ def importar_membros():
         return jsonify({'ok':True,'importados':importados})
     except Exception as e:
         return jsonify({'ok':False,'msg':str(e)}), 500
+
+# ── ESCALAS ───────────────────────────────────────────────────────
+def serialize_escala(e):
+    return {'id':e.id,'titulo':e.titulo,'data':e.data,'descricao':e.descricao or '',
+            'itens':[{'id':i.id,'membro_id':i.membro_id,'nome':i.membro.nome,
+                      'tel':i.membro.tel or '','funcao':i.funcao} for i in e.itens]}
+
+@app.route('/api/escalas')
+@login_required
+def get_escalas():
+    return jsonify([serialize_escala(e) for e in Escala.query.order_by(Escala.data.desc()).all()])
+
+@app.route('/api/escalas', methods=['POST'])
+@login_required
+def add_escala():
+    if not is_admin(): return jsonify({'ok':False}), 403
+    d = request.json
+    e = Escala(titulo=d['titulo'], data=d['data'], descricao=d.get('descricao',''))
+    db.session.add(e); db.session.commit()
+    return jsonify({'ok':True,'escala':serialize_escala(e)})
+
+@app.route('/api/escalas/<int:eid>', methods=['PUT'])
+@login_required
+def update_escala(eid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    e = Escala.query.get_or_404(eid); d = request.json
+    for k in ['titulo','data','descricao']:
+        if k in d: setattr(e, k, d[k])
+    db.session.commit()
+    return jsonify({'ok':True,'escala':serialize_escala(e)})
+
+@app.route('/api/escalas/<int:eid>', methods=['DELETE'])
+@login_required
+def del_escala(eid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    e = Escala.query.get_or_404(eid); db.session.delete(e); db.session.commit()
+    return jsonify({'ok':True})
+
+@app.route('/api/escalas/<int:eid>/itens', methods=['POST'])
+@login_required
+def add_escala_item(eid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    d = request.json
+    item = EscalaItem(escala_id=eid, membro_id=d['membro_id'], funcao=d['funcao'])
+    db.session.add(item); db.session.commit()
+    return jsonify({'ok':True,'escala':serialize_escala(Escala.query.get(eid))})
+
+@app.route('/api/escalas/<int:eid>/itens/<int:iid>', methods=['DELETE'])
+@login_required
+def del_escala_item(eid, iid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    item = EscalaItem.query.get_or_404(iid); db.session.delete(item); db.session.commit()
+    return jsonify({'ok':True,'escala':serialize_escala(Escala.query.get(eid))})
+
+# ── PRESENÇA ──────────────────────────────────────────────────────
+@app.route('/api/eventos/<int:eid>/presenca')
+@login_required
+def get_presenca(eid):
+    rows = Presenca.query.filter_by(evento_id=eid).all()
+    return jsonify([{'membro_id':p.membro_id,'presente':p.presente} for p in rows])
+
+@app.route('/api/eventos/<int:eid>/presenca', methods=['POST'])
+@login_required
+def set_presenca(eid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    d = request.json  # [{membro_id, presente}, ...]
+    Presenca.query.filter_by(evento_id=eid).delete()
+    for row in d:
+        if row.get('presente'):
+            db.session.add(Presenca(evento_id=eid, membro_id=row['membro_id'], presente=True))
+    db.session.commit()
+    return jsonify({'ok':True,'total':len([r for r in d if r.get('presente')])})
+
+# ── ORÇAMENTO ─────────────────────────────────────────────────────
+@app.route('/api/orcamento')
+@login_required
+def get_orcamento():
+    if not has_perm('p_financeiro'): return jsonify({'ok':False}), 403
+    ano = int(request.args.get('ano', date.today().year))
+    items = OrcamentoItem.query.filter_by(ano=ano).all()
+    fin = Financeiro.query.filter(Financeiro.data.like(f'{ano}-%'), Financeiro.tipo=='saida').all()
+    realizado = {}
+    for f in fin:
+        cat = f.categoria or 'Outros'
+        realizado[cat] = realizado.get(cat, 0) + f.valor
+    return jsonify({'ano':ano,
+        'itens':[{'id':i.id,'categoria':i.categoria,'previsto':i.valor_previsto,
+                  'realizado':realizado.get(i.categoria,0)} for i in items],
+        'categorias_sem_orcamento':list(set(realizado.keys()) - {i.categoria for i in items})})
+
+@app.route('/api/orcamento', methods=['POST'])
+@login_required
+def add_orcamento():
+    if not is_admin(): return jsonify({'ok':False}), 403
+    d = request.json
+    ano = int(d.get('ano', date.today().year))
+    existing = OrcamentoItem.query.filter_by(ano=ano, categoria=d['categoria']).first()
+    if existing:
+        existing.valor_previsto = float(d['valor_previsto'])
+    else:
+        db.session.add(OrcamentoItem(ano=ano, categoria=d['categoria'], valor_previsto=float(d['valor_previsto'])))
+    db.session.commit()
+    return jsonify({'ok':True})
+
+@app.route('/api/orcamento/<int:oid>', methods=['DELETE'])
+@login_required
+def del_orcamento(oid):
+    if not is_admin(): return jsonify({'ok':False}), 403
+    i = OrcamentoItem.query.get_or_404(oid); db.session.delete(i); db.session.commit()
+    return jsonify({'ok':True})
+
+# ── RECIBO DE DÍZIMO ──────────────────────────────────────────────
+@app.route('/api/recibo')
+@login_required
+def get_recibo():
+    ano = int(request.args.get('ano', date.today().year))
+    mid = request.args.get('membro_id')
+    if mid and not is_admin(): return jsonify({'ok':False}), 403
+    q = Financeiro.query.filter(Financeiro.data.like(f'{ano}-%'), Financeiro.tipo=='entrada',
+                                 Financeiro.categoria=='Dízimo')
+    if mid: q = q.filter_by(membro_id=int(mid))
+    lancamentos = q.order_by(Financeiro.data).all()
+    membros = {m.id:m.nome for m in Membro.query.all()}
+    cfg = {r.chave: r.valor for r in Config.query.all()}
+    return jsonify({
+        'ano':ano,'total':sum(f.valor for f in lancamentos),
+        'lancamentos':[{**serialize_fin(f),'membro_nome_r':membros.get(f.membro_id,'')} for f in lancamentos],
+        'igreja':cfg.get('nome_igreja','Igreja'),'pastor':cfg.get('nome_pastor','Pastor')
+    })
 
 # ── PORTAL PÚBLICO ────────────────────────────────────────────────
 @app.route('/portal')

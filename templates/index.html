@@ -292,9 +292,13 @@ input,select,textarea,button{font-family:inherit}
     <div class="sidebar-item" onclick="navTo('mural')" data-page="mural"><span class="ni">📌</span> Mural</div>
     <div class="sidebar-item" onclick="navTo('oracao')" data-page="oracao"><span class="ni">🙏</span> Oração</div>
     <div class="sidebar-item" onclick="navTo('carteirinha')" data-page="carteirinha"><span class="ni">🪪</span> Carteirinha</div>
+    <div class="sidebar-item" onclick="navTo('escala')" data-page="escala"><span class="ni">📋</span> Escala</div>
+    <div class="sidebar-item" onclick="navTo('presenca')" data-page="presenca"><span class="ni">✅</span> Presença</div>
     <div class="sidebar-sep"></div>
     <div class="sidebar-section admin-only">Administração</div>
     <div class="sidebar-item admin-only" onclick="navTo('financeiro')" data-page="financeiro"><span class="ni">💰</span> Financeiro</div>
+    <div class="sidebar-item admin-only" onclick="navTo('orcamento')" data-page="orcamento"><span class="ni">📊</span> Orçamento</div>
+    <div class="sidebar-item admin-only" onclick="navTo('recibo')" data-page="recibo"><span class="ni">🧾</span> Recibos</div>
     <div class="sidebar-item admin-only" onclick="navTo('usuarios')" data-page="usuarios"><span class="ni">🔑</span> Usuários</div>
     <div class="sidebar-item admin-only" onclick="navTo('configuracoes')" data-page="configuracoes"><span class="ni">⚙️</span> Configurações</div>
     <div class="sidebar-sep"></div>
@@ -330,6 +334,76 @@ input,select,textarea,button{font-family:inherit}
         <div style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:4px">Falar com o Pastor</div>
         <div style="font-size:.85rem;color:rgba(255,255,255,.75)">Solicitar reunião via WhatsApp</div>
       </div>
+    </div>
+
+    <!-- ESCALA DE SERVIÇO -->
+    <div class="page" id="page-escala">
+      <div class="page-header"><div class="page-title">Escala de Serviço</div><div class="page-sub">Voluntários por culto e evento</div></div>
+      <div class="toolbar">
+        <button class="btn btn-primary admin-only" onclick="openModalEscala()">+ Nova Escala</button>
+      </div>
+      <div id="escala-lista"></div>
+    </div>
+
+    <!-- PRESENÇA -->
+    <div class="page" id="page-presenca">
+      <div class="page-header"><div class="page-title">Controle de Presença</div><div class="page-sub">Lista de presença por culto/evento</div></div>
+      <div class="card" style="margin-bottom:16px">
+        <label style="font-size:.85rem;color:var(--text2)">Selecione o evento
+          <select id="presenca-evento-sel" class="form-control" style="margin-top:6px" onchange="loadPresenca()">
+            <option value="">— escolha um evento —</option>
+          </select>
+        </label>
+      </div>
+      <div id="presenca-area" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div id="presenca-stats" style="font-size:.85rem;color:var(--text2)"></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="marcarTodos(true)">✅ Todos</button>
+            <button class="btn btn-outline btn-sm" onclick="marcarTodos(false)">☐ Nenhum</button>
+            <button class="btn btn-primary btn-sm admin-only" onclick="salvarPresenca()">💾 Salvar</button>
+          </div>
+        </div>
+        <input class="search-box" id="presenca-busca" placeholder="🔍 Buscar membro..." oninput="renderPresencaLista()" style="margin-bottom:12px">
+        <div id="presenca-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px"></div>
+      </div>
+    </div>
+
+    <!-- RECIBOS -->
+    <div class="page" id="page-recibo">
+      <div class="page-header"><div class="page-title">Recibos de Dízimo</div><div class="page-sub">Comprovante anual de contribuições</div></div>
+      <div class="card" style="max-width:560px;margin-bottom:16px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <label style="font-size:.85rem;color:var(--text2);flex:1;min-width:120px">Ano
+            <select id="recibo-ano" class="form-control" style="margin-top:4px"></select>
+          </label>
+          <label style="font-size:.85rem;color:var(--text2);flex:2;min-width:180px" id="recibo-membro-label">Membro
+            <select id="recibo-membro" class="form-control" style="margin-top:4px">
+              <option value="">— meu próprio recibo —</option>
+            </select>
+          </label>
+          <button class="btn btn-primary" onclick="gerarRecibo()">🧾 Gerar Recibo</button>
+        </div>
+      </div>
+      <div id="recibo-area" style="display:none">
+        <div id="recibo-conteudo"></div>
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Imprimir / PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORÇAMENTO -->
+    <div class="page" id="page-orcamento">
+      <div class="page-header"><div class="page-title">Orçamento Anual</div><div class="page-sub">Previsto vs realizado por categoria</div></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="mudarAnoOrc(-1)">‹</button>
+        <span id="orc-ano-label" style="font-weight:700;font-size:1rem;min-width:60px;text-align:center"></span>
+        <button class="btn btn-outline btn-sm" onclick="mudarAnoOrc(+1)">›</button>
+        <button class="btn btn-primary btn-sm admin-only" onclick="openModalOrcamento()" style="margin-left:8px">+ Categoria</button>
+      </div>
+      <div id="orc-resumo" style="margin-bottom:14px"></div>
+      <div id="orc-tabela"></div>
     </div>
 
     <!-- ORAÇÃO -->
@@ -1235,6 +1309,10 @@ function navTo(page){
   if(page==='configuracoes')renderConfig();
   if(page==='oracao')renderOracao();
   if(page==='carteirinha')renderCarteirinha();
+  if(page==='escala')renderEscala();
+  if(page==='presenca')renderPresenca();
+  if(page==='orcamento')renderOrcamento();
+  if(page==='recibo')renderRecibo();
 }
 
 function toggleMore(){document.getElementById('nav-more').classList.toggle('open');}
@@ -2847,5 +2925,350 @@ function enviarWhatsApp(){
     <button type="submit" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:8px 12px;color:#fff;cursor:pointer">➤</button>
   </form>
 </div>
+
+<!-- MODAL ESCALA -->
+<div class="modal-overlay" id="modal-escala" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header"><span>📋 Escala de Serviço</span><button class="modal-close" onclick="document.getElementById('modal-escala').style.display='none'">✕</button></div>
+    <input type="hidden" id="esc-id">
+    <div class="form-group"><label>Título / Culto</label><input id="esc-titulo" class="form-control" placeholder="Ex: Culto Domingo 27/07"></div>
+    <div class="form-group"><label>Data</label><input id="esc-data" type="date" class="form-control"></div>
+    <div class="form-group"><label>Descrição (opcional)</label><textarea id="esc-desc" class="form-control" rows="2"></textarea></div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-outline" style="flex:1" onclick="document.getElementById('modal-escala').style.display='none'">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="salvarEscala()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MEMBROS ESCALA -->
+<div class="modal-overlay" id="modal-escala-membros" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-header"><span id="escm-titulo">Voluntários</span><button class="modal-close" onclick="document.getElementById('modal-escala-membros').style.display='none'">✕</button></div>
+    <input type="hidden" id="escm-id">
+    <div id="escm-lista" style="max-height:220px;overflow-y:auto;margin-bottom:16px"></div>
+    <div class="form-group" style="margin-top:12px"><label>Adicionar voluntário</label>
+      <div style="display:flex;gap:8px">
+        <select id="escm-membro" class="form-control" style="flex:2"></select>
+        <input id="escm-funcao" class="form-control" style="flex:1" placeholder="Função">
+        <button class="btn btn-primary btn-sm" onclick="adicionarMembroEscala()">+</button>
+      </div>
+    </div>
+    <button class="btn btn-outline" style="margin-top:8px;width:100%" onclick="enviarWhatsAppEscala()">📲 Enviar via WhatsApp</button>
+  </div>
+</div>
+
+<!-- MODAL ORÇAMENTO -->
+<div class="modal-overlay" id="modal-orcamento" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header"><span>📊 Nova Categoria</span><button class="modal-close" onclick="document.getElementById('modal-orcamento').style.display='none'">✕</button></div>
+    <div class="form-group"><label>Categoria</label><input id="orc-cat" class="form-control" placeholder="Ex: Aluguel, Missões..."></div>
+    <div class="form-group"><label>Valor Previsto (R$)</label><input id="orc-val" type="number" step="0.01" class="form-control" placeholder="0,00"></div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-outline" style="flex:1" onclick="document.getElementById('modal-orcamento').style.display='none'">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="salvarOrcamentoCategoria()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── ESCALA DE SERVIÇO ─────────────────────────────────────────────
+let escalasData = [];
+
+async function renderEscala(){
+  const res = await api('/api/escalas');
+  escalasData = res.escalas || [];
+  const el = document.getElementById('escala-lista');
+  if(!escalasData.length){ el.innerHTML='<div class="empty">Nenhuma escala cadastrada.</div>'; return; }
+  el.innerHTML = escalasData.map(e=>`
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-weight:700;font-size:1rem">${e.titulo}</div>
+          <div style="font-size:.82rem;color:var(--text2);margin-top:2px">${fmtData(e.data).join(' ')} ${e.descricao?'· '+e.descricao:''}</div>
+        </div>
+        <div style="display:flex;gap:6px" class="admin-only">
+          <button class="btn btn-outline btn-sm" onclick="openModalMembrosEscala(${e.id})">👥 Voluntários</button>
+          <button class="btn btn-outline btn-sm" onclick="editEscala(${e.id})">✏️</button>
+          <button class="btn btn-outline btn-sm" onclick="delEscala(${e.id})" style="color:var(--danger)">🗑</button>
+        </div>
+      </div>
+      <div id="escala-itens-${e.id}" style="margin-top:12px">${renderItensEscala(e.itens||[])}</div>
+    </div>`).join('');
+  applyPerms();
+}
+
+function renderItensEscala(itens){
+  if(!itens.length) return '<div style="font-size:.8rem;color:var(--text2)">Nenhum voluntário ainda.</div>';
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px">${itens.map(i=>`<span style="background:rgba(255,255,255,.07);border-radius:20px;padding:4px 12px;font-size:.82rem"><strong>${i.funcao}</strong>: ${i.membro_nome}</span>`).join('')}</div>`;
+}
+
+function openModalEscala(){
+  document.getElementById('esc-id').value='';
+  document.getElementById('esc-titulo').value='';
+  document.getElementById('esc-data').value=new Date().toISOString().split('T')[0];
+  document.getElementById('esc-desc').value='';
+  document.getElementById('modal-escala').style.display='flex';
+}
+
+function editEscala(id){
+  const e = escalasData.find(x=>x.id===id); if(!e) return;
+  document.getElementById('esc-id').value=id;
+  document.getElementById('esc-titulo').value=e.titulo;
+  document.getElementById('esc-data').value=e.data;
+  document.getElementById('esc-desc').value=e.descricao||'';
+  document.getElementById('modal-escala').style.display='flex';
+}
+
+async function salvarEscala(){
+  const id = document.getElementById('esc-id').value;
+  const body = {
+    titulo: document.getElementById('esc-titulo').value.trim(),
+    data: document.getElementById('esc-data').value,
+    descricao: document.getElementById('esc-desc').value.trim()
+  };
+  if(!body.titulo||!body.data){ alert('Preencha título e data.'); return; }
+  if(id) await api('/api/escalas/'+id, {method:'PUT', body:JSON.stringify(body)});
+  else    await api('/api/escalas', {method:'POST', body:JSON.stringify(body)});
+  document.getElementById('modal-escala').style.display='none';
+  renderEscala();
+}
+
+async function delEscala(id){
+  if(!confirm('Excluir escala?')) return;
+  await api('/api/escalas/'+id, {method:'DELETE'});
+  renderEscala();
+}
+
+async function openModalMembrosEscala(id){
+  const e = escalasData.find(x=>x.id===id); if(!e) return;
+  document.getElementById('escm-id').value=id;
+  document.getElementById('escm-titulo').textContent='👥 '+e.titulo;
+  renderListaItensEscala(e.itens||[], id);
+  const sel = document.getElementById('escm-membro');
+  sel.innerHTML = DATA.membros.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  document.getElementById('escm-funcao').value='';
+  document.getElementById('modal-escala-membros').style.display='flex';
+}
+
+function renderListaItensEscala(itens, escalaId){
+  const el = document.getElementById('escm-lista');
+  el.innerHTML = itens.length ? itens.map(i=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span><strong>${i.funcao}</strong>: ${i.membro_nome}</span>
+      <button class="btn btn-outline btn-sm" style="color:var(--danger)" onclick="removerMembroEscala(${escalaId},${i.id})">✕</button>
+    </div>`).join('') : '<div style="color:var(--text2);font-size:.85rem;padding:8px 0">Nenhum voluntário.</div>';
+}
+
+async function adicionarMembroEscala(){
+  const escalaId = document.getElementById('escm-id').value;
+  const membro_id = document.getElementById('escm-membro').value;
+  const funcao = document.getElementById('escm-funcao').value.trim();
+  if(!funcao){ alert('Informe a função.'); return; }
+  await api('/api/escalas/'+escalaId+'/itens', {method:'POST', body:JSON.stringify({membro_id, funcao})});
+  const res = await api('/api/escalas');
+  escalasData = res.escalas || [];
+  const e = escalasData.find(x=>x.id==escalaId);
+  if(e) renderListaItensEscala(e.itens||[], +escalaId);
+  document.getElementById('escm-funcao').value='';
+  document.getElementById('escala-itens-'+escalaId).innerHTML = renderItensEscala(e?.itens||[]);
+}
+
+async function removerMembroEscala(escalaId, itemId){
+  await api('/api/escalas/'+escalaId+'/itens/'+itemId, {method:'DELETE'});
+  const res = await api('/api/escalas');
+  escalasData = res.escalas || [];
+  const e = escalasData.find(x=>x.id==escalaId);
+  if(e){ renderListaItensEscala(e.itens||[], escalaId); document.getElementById('escala-itens-'+escalaId).innerHTML=renderItensEscala(e.itens||[]); }
+}
+
+function enviarWhatsAppEscala(){
+  const escalaId = document.getElementById('escm-id').value;
+  const e = escalasData.find(x=>x.id==escalaId); if(!e) return;
+  const txt = `*Escala de Serviço — ${e.titulo}*\n📅 ${fmtData(e.data).join(' ')}\n\n`
+    + (e.itens||[]).map(i=>`• *${i.funcao}*: ${i.membro_nome}`).join('\n');
+  window.open('https://wa.me/?text='+encodeURIComponent(txt), '_blank');
+}
+
+// ── CONTROLE DE PRESENÇA ──────────────────────────────────────────
+let presencaState = {};
+
+async function renderPresenca(){
+  const sel = document.getElementById('presenca-evento-sel');
+  const hoje = new Date().toISOString().split('T')[0];
+  const evs = (DATA.eventos||[]).slice().sort((a,b)=>b.data.localeCompare(a.data)).slice(0,30);
+  sel.innerHTML = '<option value="">— escolha um evento —</option>'
+    + evs.map(e=>`<option value="${e.id}">${e.titulo} (${fmtData(e.data).join(' ')})</option>`).join('');
+  document.getElementById('presenca-area').style.display='none';
+}
+
+async function loadPresenca(){
+  const id = document.getElementById('presenca-evento-sel').value;
+  if(!id){ document.getElementById('presenca-area').style.display='none'; return; }
+  const res = await api('/api/eventos/'+id+'/presenca');
+  presencaState = {eventoId: id, registros: {}};
+  (res.presenca||[]).forEach(p=>{ presencaState.registros[p.membro_id]=p.presente; });
+  DATA.membros.forEach(m=>{ if(presencaState.registros[m.id]===undefined) presencaState.registros[m.id]=false; });
+  document.getElementById('presenca-area').style.display='block';
+  renderPresencaLista();
+}
+
+function renderPresencaLista(){
+  const q = document.getElementById('presenca-busca').value.toLowerCase();
+  const membros = DATA.membros.filter(m=>!q||m.nome.toLowerCase().includes(q));
+  const total = DATA.membros.length;
+  const presentes = Object.values(presencaState.registros).filter(Boolean).length;
+  document.getElementById('presenca-stats').textContent=`${presentes} de ${total} presentes`;
+  document.getElementById('presenca-lista').innerHTML = membros.map(m=>{
+    const p = presencaState.registros[m.id];
+    return `<label style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid ${p?'var(--primary)':'var(--border)'};border-radius:12px;padding:10px 14px;cursor:pointer;transition:.15s">
+      <input type="checkbox" ${p?'checked':''} onchange="togglePresenca(${m.id},this.checked)" style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer">
+      <div class="list-avatar" style="width:36px;height:36px;font-size:.8rem">${iniciais(m.nome)}</div>
+      <span style="font-size:.9rem;font-weight:500">${m.nome}</span>
+    </label>`;
+  }).join('');
+}
+
+function togglePresenca(membroId, val){
+  presencaState.registros[membroId] = val;
+  const total = DATA.membros.length;
+  const presentes = Object.values(presencaState.registros).filter(Boolean).length;
+  document.getElementById('presenca-stats').textContent=`${presentes} de ${total} presentes`;
+  // update border color
+  renderPresencaLista();
+}
+
+function marcarTodos(val){
+  DATA.membros.forEach(m=>{ presencaState.registros[m.id]=val; });
+  renderPresencaLista();
+}
+
+async function salvarPresenca(){
+  if(!presencaState.eventoId) return;
+  const registros = Object.entries(presencaState.registros).map(([mid,presente])=>({membro_id:+mid,presente}));
+  await api('/api/eventos/'+presencaState.eventoId+'/presenca', {method:'POST', body:JSON.stringify({registros})});
+  showToast('Presença salva!');
+}
+
+// ── RECIBO DE DÍZIMO ──────────────────────────────────────────────
+async function renderRecibo(){
+  const anoSel = document.getElementById('recibo-ano');
+  const anoAtual = new Date().getFullYear();
+  anoSel.innerHTML = [0,1,2].map(i=>`<option value="${anoAtual-i}">${anoAtual-i}</option>`).join('');
+  const memSel = document.getElementById('recibo-membro');
+  const labelEl = document.getElementById('recibo-membro-label');
+  if(JARVIS_USER && (JARVIS_USER.role==='admin'||JARVIS_USER.role==='pastor'||(JARVIS_USER.perms&&JARVIS_USER.perms.p_financeiro))){
+    labelEl.style.display='block';
+    memSel.innerHTML = '<option value="">— meu próprio recibo —</option>'
+      + DATA.membros.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  } else {
+    labelEl.style.display='none';
+  }
+  document.getElementById('recibo-area').style.display='none';
+}
+
+async function gerarRecibo(){
+  const ano = document.getElementById('recibo-ano').value;
+  const mid = document.getElementById('recibo-membro').value;
+  const params = new URLSearchParams({ano});
+  if(mid) params.set('membro_id', mid);
+  const res = await api('/api/recibo?'+params);
+  if(!res.ok){ showToast(res.msg||'Erro ao gerar recibo.','error'); return; }
+  const r = res.recibo;
+  const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  let linhaMeses='';
+  for(let i=1;i<=12;i++){
+    const val = r.por_mes[i]||0;
+    linhaMeses+=`<tr><td style="padding:6px 8px">${meses[i-1]}</td><td style="padding:6px 8px;text-align:right">${val>0?'R$ '+val.toFixed(2).replace('.',','):'—'}</td></tr>`;
+  }
+  document.getElementById('recibo-conteudo').innerHTML=`
+    <div id="recibo-print" style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 24px;max-width:520px">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:2rem;margin-bottom:8px">✝</div>
+        <div style="font-weight:700;font-size:1.1rem">${res.igreja||'Igreja'}</div>
+        <div style="font-size:.82rem;color:var(--text2)">Recibo de Contribuições</div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="color:var(--text2)">Membro</span><strong>${r.membro}</strong></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Ano</span><strong>${r.ano}</strong></div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:.88rem">
+        <thead><tr style="background:rgba(255,255,255,.05)"><th style="padding:6px 8px;text-align:left">Mês</th><th style="padding:6px 8px;text-align:right">Valor</th></tr></thead>
+        <tbody>${linhaMeses}</tbody>
+        <tfoot><tr style="border-top:2px solid var(--border)"><td style="padding:10px 8px;font-weight:700">Total</td><td style="padding:10px 8px;text-align:right;font-weight:700;font-size:1.05rem">R$ ${r.total.toFixed(2).replace('.',',')}</td></tr></tfoot>
+      </table>
+      <div style="text-align:center;margin-top:20px;font-size:.75rem;color:var(--text2)">Gerado em ${new Date().toLocaleDateString('pt-BR')} · ${res.igreja}</div>
+    </div>`;
+  document.getElementById('recibo-area').style.display='block';
+}
+
+// ── ORÇAMENTO ANUAL ───────────────────────────────────────────────
+let orcAno = new Date().getFullYear();
+
+async function renderOrcamento(){
+  document.getElementById('orc-ano-label').textContent = orcAno;
+  const res = await api('/api/orcamento?ano='+orcAno);
+  const itens = res.itens || [];
+  const fin = (DATA.financeiro||[]).filter(f=>f.tipo==='saida'&&f.data&&f.data.startsWith(orcAno));
+  // realizado por categoria
+  const realizado = {};
+  fin.forEach(f=>{ const c=f.categoria||'Outros'; realizado[c]=(realizado[c]||0)+f.valor; });
+  const totalPrev = itens.reduce((a,i)=>a+i.valor_previsto,0);
+  const totalReal = itens.reduce((a,i)=>a+(realizado[i.categoria]||0),0);
+  document.getElementById('orc-resumo').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+      <div class="stat-card"><div class="stat-val" style="font-size:1.1rem">R$ ${totalPrev.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="stat-lbl">Previsto</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:1.1rem">R$ ${totalReal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="stat-lbl">Realizado</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:1.1rem;color:${totalReal>totalPrev?'var(--danger)':'var(--green)'}">R$ ${Math.abs(totalPrev-totalReal).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="stat-lbl">${totalReal>totalPrev?'Excedido':'Disponível'}</div></div>
+    </div>`;
+  if(!itens.length){
+    document.getElementById('orc-tabela').innerHTML='<div class="empty">Nenhuma categoria cadastrada para '+orcAno+'.</div>';
+    return;
+  }
+  document.getElementById('orc-tabela').innerHTML=itens.map(i=>{
+    const r=realizado[i.categoria]||0;
+    const pct=i.valor_previsto>0?Math.min(100,(r/i.valor_previsto)*100):0;
+    const over=r>i.valor_previsto;
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+        <div style="font-weight:600">${i.categoria}</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span style="font-size:.82rem;color:var(--text2)">Previsto: <strong>R$ ${i.valor_previsto.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></span>
+          <span style="font-size:.82rem;color:${over?'var(--danger)':'var(--green)'}">Realizado: <strong>R$ ${r.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></span>
+          <button class="btn btn-outline btn-sm admin-only" onclick="delOrcamentoCategoria(${i.id})" style="color:var(--danger)">✕</button>
+        </div>
+      </div>
+      <div style="height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${over?'var(--danger)':'var(--primary)'};border-radius:4px;transition:.3s"></div>
+      </div>
+      <div style="font-size:.75rem;color:var(--text2);margin-top:4px;text-align:right">${pct.toFixed(1)}% utilizado</div>
+    </div>`;
+  }).join('');
+  applyPerms();
+}
+
+function mudarAnoOrc(delta){ orcAno+=delta; renderOrcamento(); }
+
+function openModalOrcamento(){
+  document.getElementById('orc-cat').value='';
+  document.getElementById('orc-val').value='';
+  document.getElementById('modal-orcamento').style.display='flex';
+}
+
+async function salvarOrcamentoCategoria(){
+  const cat=document.getElementById('orc-cat').value.trim();
+  const val=parseFloat(document.getElementById('orc-val').value);
+  if(!cat||isNaN(val)){ alert('Preencha categoria e valor.'); return; }
+  await api('/api/orcamento', {method:'POST', body:JSON.stringify({ano:orcAno, categoria:cat, valor_previsto:val})});
+  document.getElementById('modal-orcamento').style.display='none';
+  renderOrcamento();
+}
+
+async function delOrcamentoCategoria(id){
+  if(!confirm('Remover categoria?')) return;
+  await api('/api/orcamento/'+id, {method:'DELETE'});
+  renderOrcamento();
+}
+</script>
 </body>
 </html>

@@ -152,6 +152,38 @@ class Config(db.Model):
     chave = db.Column(db.String(60), unique=True, nullable=False)
     valor = db.Column(db.Text)
 
+class Escala(db.Model):
+    __tablename__ = 'escalas'
+    id        = db.Column(db.Integer, primary_key=True)
+    titulo    = db.Column(db.String(120), nullable=False)
+    data      = db.Column(db.String(10), nullable=False)
+    descricao = db.Column(db.Text)
+    itens     = db.relationship('EscalaItem', backref='escala', lazy=True, cascade='all,delete')
+
+class EscalaItem(db.Model):
+    __tablename__ = 'escala_itens'
+    id        = db.Column(db.Integer, primary_key=True)
+    escala_id = db.Column(db.Integer, db.ForeignKey('escalas.id'), nullable=False)
+    membro_id = db.Column(db.Integer, db.ForeignKey('membros.id'), nullable=False)
+    funcao    = db.Column(db.String(60), nullable=False)
+    membro    = db.relationship('Membro')
+
+class Presenca(db.Model):
+    __tablename__ = 'presencas'
+    id        = db.Column(db.Integer, primary_key=True)
+    evento_id = db.Column(db.Integer, db.ForeignKey('eventos.id'), nullable=False)
+    membro_id = db.Column(db.Integer, db.ForeignKey('membros.id'), nullable=False)
+    presente  = db.Column(db.Boolean, default=True)
+    membro    = db.relationship('Membro')
+    evento    = db.relationship('Evento')
+
+class OrcamentoItem(db.Model):
+    __tablename__ = 'orcamento'
+    id             = db.Column(db.Integer, primary_key=True)
+    ano            = db.Column(db.Integer, nullable=False)
+    categoria      = db.Column(db.String(80), nullable=False)
+    valor_previsto = db.Column(db.Float, nullable=False, default=0)
+
 class PedidoOracao(db.Model):
     __tablename__ = 'pedidos_oracao'
     id               = db.Column(db.Integer, primary_key=True)

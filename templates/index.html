@@ -736,12 +736,25 @@ input,select,textarea,button{font-family:inherit}
   </div>
 
   <!-- MENU MAIS -->
-  <div class="nav-more" id="nav-more" onclick="toggleMore()">
-    <div class="nav-more-item" onclick="navTo('ministerios')"><span class="ni">🎺</span> Ministérios</div>
-    <div class="nav-more-item" onclick="navTo('agenda')"><span class="ni">📅</span> Agenda</div>
-    <div class="nav-more-item admin-only" onclick="navTo('financeiro')"><span class="ni">💰</span> Financeiro</div>
-    <div class="nav-more-item admin-only" onclick="navTo('usuarios')"><span class="ni">🔑</span> Usuários</div>
-    <div class="nav-more-item" onclick="doLogout()"><span class="ni">🚪</span> Sair</div>
+  <div class="nav-more" id="nav-more" onclick="if(event.target===this||event.target.closest('.nav-more-item'))toggleMore()">
+    <div style="display:grid;grid-template-columns:1fr 1fr">
+      <div class="nav-more-item" onclick="navTo('ministerios')"><span class="ni">🎺</span> Ministérios</div>
+      <div class="nav-more-item" onclick="navTo('agenda')"><span class="ni">📅</span> Agenda</div>
+      <div class="nav-more-item" onclick="navTo('oracao')"><span class="ni">🙏</span> Oração</div>
+      <div class="nav-more-item" onclick="navTo('carteirinha')"><span class="ni">🪪</span> Carteirinha</div>
+      <div class="nav-more-item" onclick="navTo('comunicados')"><span class="ni">📢</span> Comunicados</div>
+      <div class="nav-more-item" onclick="navTo('celulas')"><span class="ni">👥</span> Células</div>
+      <div class="nav-more-item" onclick="navTo('guia')"><span class="ni">📖</span> Guia</div>
+      <div class="nav-more-item" onclick="navTo('pix')"><span class="ni">💠</span> PIX</div>
+      <div class="nav-more-item" onclick="navTo('escala')"><span class="ni">📋</span> Escala</div>
+      <div class="nav-more-item" onclick="navTo('presenca')"><span class="ni">✅</span> Presença</div>
+      <div class="nav-more-item admin-only" onclick="navTo('financeiro')"><span class="ni">💰</span> Financeiro</div>
+      <div class="nav-more-item admin-only" onclick="navTo('orcamento')"><span class="ni">📊</span> Orçamento</div>
+      <div class="nav-more-item admin-only" onclick="navTo('recibo')"><span class="ni">🧾</span> Recibos</div>
+      <div class="nav-more-item admin-only" onclick="navTo('usuarios')"><span class="ni">🔑</span> Usuários</div>
+      <div class="nav-more-item admin-only" onclick="navTo('configuracoes')"><span class="ni">⚙️</span> Config</div>
+      <div class="nav-more-item" onclick="doLogout()"><span class="ni">🚪</span> Sair</div>
+    </div>
   </div>
 </div><!-- /app -->
 

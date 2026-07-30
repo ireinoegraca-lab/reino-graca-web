@@ -1342,6 +1342,9 @@ function applyRole(){
   document.querySelectorAll('[data-page="financeiro"]').forEach(el=>el.style.display=p.p_financeiro?'':'none');
   document.querySelectorAll('[data-page="usuarios"]').forEach(el=>el.style.display=p.p_usuarios?'':'none');
   document.querySelectorAll('.admin-only').forEach(el=>el.style.display=isAdmin()?'':'none');
+  // assistente flutuante — ID tem maior especificidade, forçar via style direto
+  const fab=document.getElementById('assistFab');
+  if(fab) fab.style.setProperty('display', isAdmin()?'flex':'none','important');
   // botões de ação
   const hide=(id,show)=>{const el=document.getElementById(id);if(el)el.style.display=show?'':'none';};
   hide('btn-novo-membro', p.p_membros);

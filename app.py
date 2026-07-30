@@ -236,6 +236,37 @@ def api_logout():
     logout_user()
     return jsonify({'ok':True})
 
+@app.route('/api/carteirinha/me')
+@login_required
+def carteirinha_me():
+    u = current_user
+    # tenta vincular pelo ministerio_id do usuário
+    m = None
+    if u.ministerio_id:
+        m = Membro.query.filter_by(ministerio_id=u.ministerio_id).filter(
+            Membro.nome.ilike(f'%{u.nome.split()[0]}%')).first()
+    # busca por nome exato ou parcial
+    if not m:
+        m = Membro.query.filter(Membro.nome.ilike(u.nome)).first()
+    if not m:
+        primeiro = u.nome.split()[0]
+        m = Membro.query.filter(Membro.nome.ilike(f'{primeiro}%')).first()
+    cfg = {r.chave: r.valor for r in Config.query.all()}
+    if m:
+        return jsonify({'ok': True, 'membro': {
+            'id': m.id, 'nome': m.nome, 'foto': m.foto or '',
+            'status': m.status or 'Ativo',
+            'profissao': m.profissao or '',
+            'ministerio_nome': m.ministerio.nome if m.ministerio else '',
+            'nasc': m.nasc or '', 'bairro': m.bairro or ''
+        }, 'config': cfg})
+    # fallback: usa dados do usuário
+    return jsonify({'ok': True, 'membro': {
+        'id': u.id, 'nome': u.nome, 'foto': '',
+        'status': 'Membro', 'profissao': '',
+        'ministerio_nome': '', 'nasc': '', 'bairro': ''
+    }, 'config': cfg})
+
 @app.route('/api/me')
 def api_me():
     if not current_user.is_authenticated:

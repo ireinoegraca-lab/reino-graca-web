@@ -2869,15 +2869,11 @@ async function delOracao(id){
 // ── CARTEIRINHA ───────────────────────────────────────────────────
 async function renderCarteirinha(){
   const el = document.getElementById('carteirinha-container');
-  // Busca dados do membro correspondente ao usuário logado (por nome)
-  const membros = DATA.membros || [];
-  const nomeLower = (USER.nome||'').toLowerCase();
-  const membro = membros.find(m => m.nome.toLowerCase() === nomeLower)
-                 || membros.find(m => nomeLower.startsWith(m.nome.toLowerCase().split(' ')[0].toLowerCase()))
-                 || {nome: USER.nome, status:'Ativo', foto:'', id: USER.id};
-
-  const igreja = CONFIG.nome_igreja || 'Igreja';
-  const pastor = CONFIG.nome_pastor || 'Pastor';
+  el.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted)">Carregando...</div>';
+  const d = await api('/api/carteirinha/me');
+  const membro = d.membro || {nome: USER.nome, status:'Membro', foto:'', id: USER.id, ministerio_nome:'', profissao:''};
+  const igreja = (d.config && d.config.nome_igreja) || CONFIG.nome_igreja || 'Igreja';
+  const pastor = (d.config && d.config.nome_pastor) || CONFIG.nome_pastor || 'Pastor';
   const foto = membro.foto
     ? `<img src="${membro.foto}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid rgba(225,29,42,.5)">`
     : `<div style="width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--brand),#7a0d14);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#fff;border:3px solid rgba(225,29,42,.5)">${iniciais(membro.nome)}</div>`;

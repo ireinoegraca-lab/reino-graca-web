@@ -170,8 +170,9 @@ def api_register():
                 perfil_id=perfil_membro.id if perfil_membro else None, ultima_confirmacao=hoje)
     u.set_senha(senha)
     db.session.add(u)
+    foto = (d.get('foto') or '').strip() or None
     m = Membro(nome=nome, email=email, tel=tel, nasc=nasc or None, status='Ativo',
-               profissao=profissao or None, bairro=bairro or None)
+               profissao=profissao or None, bairro=bairro or None, foto=foto)
     db.session.add(m)
     db.session.commit()
     return jsonify({'ok':True,'pendente':True,'msg':'Cadastro enviado! Aguarde a aprovação do administrador.'})

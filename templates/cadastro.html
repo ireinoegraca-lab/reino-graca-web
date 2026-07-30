@@ -38,6 +38,17 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .required{color:var(--brand2)}
 .hint{font-size:.75rem;color:var(--muted);margin-top:4px}
 @media(max-width:420px){.row{grid-template-columns:1fr}}
+/* foto */
+.foto-area{display:flex;flex-direction:column;align-items:center;gap:14px;padding:8px 0}
+.foto-circle{width:96px;height:96px;border-radius:50%;background:var(--bg2);border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:2.2rem;overflow:hidden;cursor:pointer;transition:border-color .2s;flex-shrink:0}
+.foto-circle:hover{border-color:var(--brand)}
+.foto-circle img{width:100%;height:100%;object-fit:cover}
+.foto-btns{display:flex;flex-direction:column;gap:8px;flex:1;width:100%}
+.foto-row{display:flex;gap:8px;align-items:center}
+.btn-foto{flex:1;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--txt);font-size:.82rem;cursor:pointer;font-family:inherit;text-align:center;transition:border-color .2s}
+.btn-foto:hover{border-color:var(--brand)}
+.foto-skip{font-size:.75rem;color:var(--muted);text-align:center;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.foto-skip:hover{color:var(--txt)}
 </style>
 </head>
 <body>
@@ -99,6 +110,23 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
       </div>
     </div>
 
+    <!-- Foto -->
+    <div class="card">
+      <div class="section-title">📷 Foto de perfil <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem">(opcional)</span></div>
+      <div class="foto-area">
+        <div class="foto-circle" id="foto-preview" onclick="document.getElementById('r-foto-input').click()">📷</div>
+        <div class="foto-btns">
+          <div class="foto-row">
+            <button type="button" class="btn-foto" onclick="document.getElementById('r-foto-cam').click()">📱 Tirar foto</button>
+            <button type="button" class="btn-foto" onclick="document.getElementById('r-foto-input').click()">🖼️ Escolher da galeria</button>
+          </div>
+          <div class="foto-skip" id="foto-skip-txt" onclick="pularFoto()">Deixar para depois →</div>
+          <input type="file" id="r-foto-input" accept="image/*" style="display:none" onchange="previewFoto(this)">
+          <input type="file" id="r-foto-cam" accept="image/*" capture="user" style="display:none" onchange="previewFoto(this)">
+        </div>
+      </div>
+    </div>
+
     <button class="btn" id="btn-cadastrar" onclick="enviar()">Enviar Cadastro</button>
     <div class="err" id="r-err"></div>
   </div>
@@ -120,6 +148,41 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 </div>
 
 <script>
+let fotoBase64 = null;
+
+function previewFoto(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    fotoBase64 = e.target.result;
+    const prev = document.getElementById('foto-preview');
+    prev.innerHTML = `<img src="${fotoBase64}">`;
+    document.getElementById('foto-skip-txt').textContent = 'Remover foto ✕';
+    document.getElementById('foto-skip-txt').onclick = removerFoto;
+  };
+  reader.readAsDataURL(file);
+}
+
+function pularFoto(){
+  // não faz nada, foto segue null
+  document.getElementById('foto-skip-txt').style.display = 'none';
+  document.getElementById('foto-preview').style.pointerEvents = 'none';
+  document.getElementById('foto-preview').style.opacity = '0.4';
+}
+
+function removerFoto(){
+  fotoBase64 = null;
+  document.getElementById('foto-preview').innerHTML = '📷';
+  document.getElementById('foto-preview').style.pointerEvents = '';
+  document.getElementById('foto-preview').style.opacity = '';
+  document.getElementById('r-foto-input').value = '';
+  document.getElementById('r-foto-cam').value = '';
+  document.getElementById('foto-skip-txt').textContent = 'Deixar para depois →';
+  document.getElementById('foto-skip-txt').style.display = '';
+  document.getElementById('foto-skip-txt').onclick = pularFoto;
+}
+
 async function enviar(){
   const btn=document.getElementById('btn-cadastrar');
   const err=document.getElementById('r-err');
@@ -139,7 +202,8 @@ async function enviar(){
         tel:document.getElementById('r-tel').value.trim(),
         nasc:document.getElementById('r-nasc').value||null,
         profissao:document.getElementById('r-profissao').value.trim(),
-        bairro:document.getElementById('r-bairro').value.trim()
+        bairro:document.getElementById('r-bairro').value.trim(),
+        foto:fotoBase64||null
       })});
     const d=await r.json();
     if(d.ok||d.pendente){

@@ -2901,7 +2901,7 @@ async function renderCarteirinha(){
         ${foto}
         <div style="flex:1">
           <div style="font-size:1rem;font-weight:700;color:#f5f0f0;line-height:1.2;margin-bottom:6px">${membro.nome}</div>
-          <div style="font-size:.7rem;color:rgba(225,29,42,.9);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">${membro.status || 'Ativo'}</div>
+          <div style="font-size:.7rem;color:rgba(225,29,42,.9);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">${membro.ministerio_nome||membro.profissao||membro.status||'Membro'}</div>
           <div style="font-size:.68rem;color:#9b9296">Nº ${idNum}</div>
           ${membro.nasc?`<div style="font-size:.68rem;color:#9b9296;margin-top:2px">Nasc. ${fmtDataBr(membro.nasc)}</div>`:''}
         </div>

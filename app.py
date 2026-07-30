@@ -65,7 +65,8 @@ def serialize_usuario(u):
 def serialize_membro(m):
     return {'id':m.id,'nome':m.nome,'nasc':m.nasc or '','tel':m.tel or '','email':m.email or '',
             'profissao':m.profissao or '','status':m.status or 'Ativo','bairro':m.bairro or '',
-            'obs':m.obs or '','foto':m.foto or '','ministerio_id':m.ministerio_id}
+            'obs':m.obs or '','foto':m.foto or '','ministerio_id':m.ministerio_id,
+            'ministerio_nome':m.ministerio.nome if m.ministerio else ''}
 def serialize_ministerio(c):
     return {'id':c.id,'nome':c.nome,'descricao':c.descricao or '','cor':c.cor or '#e11d2a',
             'membros':[{'id':mb.id,'nome':mb.nome,'status':mb.status} for mb in c.membros]}

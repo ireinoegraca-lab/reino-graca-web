@@ -2016,7 +2016,7 @@ function renderFinAnual(){
   const ctx=canvas.getContext('2d');
   ctx.scale(dpr,dpr);
   const maxVal=Math.max(...meses.map(m=>Math.max(m.entrada,m.saida)),1);
-  const padL=10,padR=10,padT=10,padB=28;
+  const padL=10,padR=10,padT=10,padB=22;
   const chartW=W-padL-padR;
   const chartH=H-padT-padB;
   const colW=chartW/12;
@@ -2054,9 +2054,9 @@ function renderFinAnual(){
     }
     // label mês
     ctx.fillStyle='rgba(255,255,255,.45)';
-    ctx.font=`${Math.max(9,colW*0.35)}px Inter,sans-serif`;
+    ctx.font=`9px Inter,sans-serif`;
     ctx.textAlign='center';
-    ctx.fillText(MESES_ABREV2[i],x+colW/2,H-padB+14);
+    ctx.fillText(MESES_ABREV2[i],x+colW/2,H-4);
   });
 }
 

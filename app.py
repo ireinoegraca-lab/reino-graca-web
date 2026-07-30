@@ -1068,6 +1068,25 @@ def marcar_lido(cid):
         db.session.commit()
     return jsonify({'ok': True})
 
+@app.route('/api/comunicados/<int:cid>/leituras')
+@login_required
+def get_leituras(cid):
+    c = Comunicado.query.get_or_404(cid)
+    if not (is_admin() or c.autor_id == current_user.id):
+        return jsonify({'ok': False, 'msg': 'Sem permissão'}), 403
+    leituras = (ComunicadoLeitura.query
+                .filter_by(comunicado_id=cid)
+                .join(Usuario, ComunicadoLeitura.usuario_id == Usuario.id)
+                .add_columns(Usuario.nome, ComunicadoLeitura.lido_em)
+                .order_by(ComunicadoLeitura.lido_em.asc())
+                .all())
+    total_usuarios = Usuario.query.filter_by(status='ativo').count()
+    return jsonify({
+        'ok': True,
+        'total_usuarios': total_usuarios,
+        'leituras': [{'nome': l.nome, 'lido_em': l.lido_em.strftime('%d/%m/%Y %H:%M')} for l in leituras]
+    })
+
 # ── CÉLULAS ───────────────────────────────────────────────────────
 def serialize_celula(c):
     return {

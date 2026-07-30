@@ -428,6 +428,7 @@ def update_financeiro(fid):
     for k in ['tipo','categoria','valor','data','descricao','forma']:
         if k in d: setattr(f, k, float(d[k]) if k=='valor' else d[k])
     if 'campanha_id' in d: f.campanha_id = d['campanha_id'] or None
+    if 'membro_id' in d: f.membro_id = d['membro_id'] or None
     db.session.commit()
     return jsonify({'ok':True,'lancamento':serialize_fin(f)})
 

@@ -1022,7 +1022,7 @@ input,select,textarea,button{font-family:inherit}
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Tipo *</label>
-          <select class="form-input" id="fin-tipo">
+          <select class="form-input" id="fin-tipo" onchange="finToggleMembroField()">
             <option value="entrada">💚 Entrada</option>
             <option value="saida">🔴 Saída</option>
           </select>
@@ -1058,6 +1058,12 @@ input,select,textarea,button{font-family:inherit}
           <option value="PIX">⚡ PIX</option>
           <option value="Cartão">💳 Cartão</option>
           <option value="Transferência">🏦 Transferência</option>
+        </select>
+      </div>
+      <div class="form-group" id="fin-membro-group">
+        <label class="form-label">Membro (doador)</label>
+        <select class="form-input" id="fin-membro">
+          <option value="">— anônimo / não identificado —</option>
         </select>
       </div>
       <div class="form-group">
@@ -2055,7 +2061,18 @@ function openModalFin(id){
   const selCamp=document.getElementById('fin-campanha');
   selCamp.innerHTML='<option value="">— nenhuma —</option>'+(DATA.campanhas||[]).filter(c=>c.status==='ativa').map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
   selCamp.value=f&&f.campanha_id?f.campanha_id:'';
+  // popula membros
+  const selMembro=document.getElementById('fin-membro');
+  selMembro.innerHTML='<option value="">— anônimo / não identificado —</option>'+(DATA.membros||[]).filter(m=>m.status==='Ativo').sort((a,b)=>a.nome.localeCompare(b.nome)).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  selMembro.value=f&&f.membro_id?f.membro_id:'';
+  // mostrar campo membro só em entradas
+  finToggleMembroField();
   openModal('modal-fin');
+}
+
+function finToggleMembroField(){
+  const tipo=document.getElementById('fin-tipo').value;
+  document.getElementById('fin-membro-group').style.display=tipo==='entrada'?'':'none';
 }
 
 async function salvarFin(){
@@ -2063,7 +2080,8 @@ async function salvarFin(){
   const valor=document.getElementById('fin-valor').value,data=document.getElementById('fin-data').value;
   if(!valor||!data){toast('Preencha valor e data','error');return;}
   const campId=document.getElementById('fin-campanha').value;
-  const body={tipo:document.getElementById('fin-tipo').value,categoria:document.getElementById('fin-cat').value,valor:parseFloat(valor),data,descricao:document.getElementById('fin-desc').value,forma:document.getElementById('fin-forma').value,campanha_id:campId?parseInt(campId):null};
+  const membroId=document.getElementById('fin-membro').value;
+  const body={tipo:document.getElementById('fin-tipo').value,categoria:document.getElementById('fin-cat').value,valor:parseFloat(valor),data,descricao:document.getElementById('fin-desc').value,forma:document.getElementById('fin-forma').value,campanha_id:campId?parseInt(campId):null,membro_id:membroId?parseInt(membroId):null};
   if(id){
     const res=await api(`/api/financeiro/${id}`,{method:'PUT',body:JSON.stringify(body)});
     if(!res.ok){toast('Erro','error');return;}

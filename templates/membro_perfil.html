@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080808">
+<title>Perfil — {{ nome_igreja }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080808;--card:#161616;--line:#2c2424;--txt:#f5f0f0;--muted:#9b9296;--brand:#e11d2a;--green:#22c55e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:radial-gradient(ellipse 80% 60% at 50% 0%,#1a060a,var(--bg) 65%)}
+.wrap{width:100%;max-width:400px}
+.church-header{text-align:center;margin-bottom:28px}
+.church-name{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--brand);font-weight:700;letter-spacing:.05em}
+.church-sub{font-size:.72rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.card-top{background:linear-gradient(135deg,#e11d2a,#7a0d14);padding:24px 20px;text-align:center}
+.avatar{width:96px;height:96px;border-radius:50%;border:3px solid rgba(255,255,255,.3);margin:0 auto 14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);font-size:2.2rem;font-weight:700;color:#fff}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.nome{font-size:1.25rem;font-weight:700;color:#fff;margin-bottom:4px}
+.ministerio{font-size:.78rem;color:rgba(255,255,255,.75);letter-spacing:.05em}
+.card-body{padding:24px 20px}
+.verified-box{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:14px;padding:16px;text-align:center;margin-bottom:20px}
+.verified-icon{font-size:2rem;margin-bottom:6px}
+.verified-title{font-size:.95rem;font-weight:700;color:var(--green);margin-bottom:4px}
+.verified-sub{font-size:.75rem;color:var(--muted);line-height:1.5}
+.info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:.84rem}
+.info-row:last-child{border:none}
+.info-label{color:var(--muted)}
+.info-value{font-weight:600;text-align:right}
+.status-ativo{color:var(--green)}
+.status-inativo{color:var(--brand)}
+.footer{text-align:center;margin-top:24px;font-size:.72rem;color:var(--muted);line-height:1.7}
+.btn-scan{display:block;width:100%;background:var(--brand);color:#fff;border:none;border-radius:12px;padding:13px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;text-decoration:none;margin-top:20px}
+.not-found{text-align:center;padding:48px 24px}
+.not-found-icon{font-size:3rem;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="church-header">
+    <div class="church-name">✝ {{ nome_igreja }}</div>
+    <div class="church-sub">Verificação de Membro</div>
+  </div>
+
+  {% if membro %}
+  <div class="card">
+    <div class="card-top">
+      <div class="avatar">
+        {% if membro.foto %}
+        <img src="{{ membro.foto }}" alt="{{ membro.nome }}">
+        {% else %}
+        {{ membro.nome[:2].upper() }}
+        {% endif %}
+      </div>
+      <div class="nome">{{ membro.nome }}</div>
+      {% if membro.ministerio %}
+      <div class="ministerio">{{ membro.ministerio }}</div>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <div class="verified-box">
+        <div class="verified-icon">{% if membro.status == 'Ativo' %}✅{% else %}⚠️{% endif %}</div>
+        <div class="verified-title">{% if membro.status == 'Ativo' %}Membro Verificado{% else %}Membro {{ membro.status }}{% endif %}</div>
+        <div class="verified-sub">{{ nome_igreja }}<br>Verificado em {{ data_hoje }}</div>
+      </div>
+
+      <div class="info-row">
+        <span class="info-label">Nº de Membro</span>
+        <span class="info-value">#{{ '%06d' % membro.id }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Status</span>
+        <span class="info-value {% if membro.status == 'Ativo' %}status-ativo{% else %}status-inativo{% endif %}">{{ membro.status }}</span>
+      </div>
+      {% if membro.profissao %}
+      <div class="info-row">
+        <span class="info-label">Profissão</span>
+        <span class="info-value">{{ membro.profissao }}</span>
+      </div>
+      {% endif %}
+      {% if membro.bairro %}
+      <div class="info-row">
+        <span class="info-label">Bairro</span>
+        <span class="info-value">{{ membro.bairro }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="not-found">
+      <div class="not-found-icon">❌</div>
+      <div style="font-size:1rem;font-weight:700;margin-bottom:8px">Membro não encontrado</div>
+      <div style="font-size:.84rem;color:var(--muted)">Este QR code não corresponde a nenhum membro ativo.</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="footer">
+    Sistema Reino & Graça<br>
+    Este perfil é gerado automaticamente pelo sistema da igreja
+  </div>
+</div>
+</body>
+</html>

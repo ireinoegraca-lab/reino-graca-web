@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080808">
+<title>Escanear Presença — {{ nome_igreja }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<style>
+:root{--bg:#080808;--card:#161616;--line:#2c2424;--txt:#f5f0f0;--muted:#9b9296;--brand:#e11d2a;--green:#22c55e;--yellow:#f59e0b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;padding:0 0 40px}
+.topbar{background:#0f0f0f;border-bottom:1px solid var(--line);padding:14px 20px;display:flex;align-items:center;gap:12px}
+.topbar a{color:var(--muted);text-decoration:none;font-size:.85rem}
+.topbar-title{font-weight:700;font-size:1rem}
+.wrap{max-width:480px;margin:0 auto;padding:20px 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:16px}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:8px}
+select,input{width:100%;background:#0f0f0f;border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--txt);font-size:.93rem;outline:none;font-family:inherit}
+select:focus,input:focus{border-color:var(--brand)}
+.cam-box{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:1;width:100%;margin:16px 0}
+.cam-box video{width:100%;height:100%;object-fit:cover;display:block}
+.cam-box canvas{display:none}
+.scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--brand),transparent);animation:scanMove 2s linear infinite}
+@keyframes scanMove{0%{top:0}100%{top:100%}}
+.scan-frame{position:absolute;inset:20%;border:2px solid rgba(225,29,42,.6);border-radius:12px;pointer-events:none}
+.scan-corner{position:absolute;width:20px;height:20px;border-color:var(--brand);border-style:solid}
+.scan-corner.tl{top:-1px;left:-1px;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
+.scan-corner.tr{top:-1px;right:-1px;border-width:3px 3px 0 0;border-radius:0 4px 0 0}
+.scan-corner.bl{bottom:-1px;left:-1px;border-width:0 0 3px 3px;border-radius:0 0 0 4px}
+.scan-corner.br{bottom:-1px;right:-1px;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
+.btn{width:100%;background:var(--brand);color:#fff;border:none;border-radius:12px;padding:14px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit}
+.btn:disabled{opacity:.5;cursor:default}
+.btn-outline{background:transparent;border:1px solid var(--line);color:var(--txt)}
+.result-box{display:none;border-radius:14px;padding:20px;text-align:center;margin-top:16px}
+.result-box.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3)}
+.result-box.err{background:rgba(225,29,42,.1);border:1px solid rgba(225,29,42,.3)}
+.result-box.warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3)}
+.result-icon{font-size:2.5rem;margin-bottom:10px}
+.result-nome{font-size:1.1rem;font-weight:700;margin-bottom:4px}
+.result-sub{font-size:.82rem;color:var(--muted)}
+.historico-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:.84rem}
+.historico-item:last-child{border:none}
+.badge{font-size:.7rem;padding:3px 8px;border-radius:20px;font-weight:700}
+.badge-ok{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-dup{background:rgba(245,158,11,.15);color:var(--yellow)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/">← Voltar</a>
+  <div class="topbar-title">📷 Confirmar Presença por QR</div>
+</div>
+
+<div class="wrap">
+  <!-- Selecionar evento -->
+  <div class="card">
+    <div class="label">Evento / Culto</div>
+    <select id="sel-evento">
+      <option value="">— selecione o evento —</option>
+      {% for ev in eventos %}
+      <option value="{{ ev.id }}">{{ ev.data }} — {{ ev.titulo }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- Câmera -->
+  <div class="card">
+    <div class="label">Aponte a câmera para a carteirinha</div>
+    <div class="cam-box" id="cam-box">
+      <video id="cam-video" autoplay playsinline muted></video>
+      <canvas id="cam-canvas"></canvas>
+      <div class="scan-line" id="scan-line" style="display:none"></div>
+      <div class="scan-frame" id="scan-frame" style="display:none">
+        <div class="scan-corner tl"></div>
+        <div class="scan-corner tr"></div>
+        <div class="scan-corner bl"></div>
+        <div class="scan-corner br"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn" id="btn-iniciar" onclick="iniciarCamera()">📷 Iniciar Câmera</button>
+      <button class="btn btn-outline" id="btn-parar" onclick="pararCamera()" style="display:none">⏹ Parar</button>
+    </div>
+
+    <!-- resultado -->
+    <div class="result-box" id="result-box">
+      <div class="result-icon" id="result-icon"></div>
+      <div class="result-nome" id="result-nome"></div>
+      <div class="result-sub" id="result-sub"></div>
+    </div>
+  </div>
+
+  <!-- Histórico da sessão -->
+  <div class="card" id="historico-card" style="display:none">
+    <div class="label" style="margin-bottom:14px">Presenças confirmadas nesta sessão</div>
+    <div id="historico-lista"></div>
+  </div>
+</div>
+
+<script>
+let stream = null;
+let scanning = false;
+let scanTimer = null;
+const historico = [];
+
+async function iniciarCamera(){
+  const ev = document.getElementById('sel-evento').value;
+  if(!ev){ alert('Selecione um evento primeiro.'); return; }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    const video = document.getElementById('cam-video');
+    video.srcObject = stream;
+    await video.play();
+    document.getElementById('btn-iniciar').style.display='none';
+    document.getElementById('btn-parar').style.display='';
+    document.getElementById('scan-line').style.display='';
+    document.getElementById('scan-frame').style.display='';
+    scanning = true;
+    requestAnimationFrame(scanFrame);
+  }catch(e){
+    alert('Não foi possível acessar a câmera: '+e.message);
+  }
+}
+
+function pararCamera(){
+  scanning = false;
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  stream = null;
+  document.getElementById('cam-video').srcObject = null;
+  document.getElementById('btn-iniciar').style.display='';
+  document.getElementById('btn-parar').style.display='none';
+  document.getElementById('scan-line').style.display='none';
+  document.getElementById('scan-frame').style.display='none';
+}
+
+function scanFrame(){
+  if(!scanning) return;
+  const video = document.getElementById('cam-video');
+  const canvas = document.getElementById('cam-canvas');
+  if(video.readyState === video.HAVE_ENOUGH_DATA){
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+    const code = jsQR(img.data, img.width, img.height, {inversionAttempts:'dontInvert'});
+    if(code){
+      const url = code.data;
+      // extrai ID da URL /membro/<id>
+      const match = url.match(/\/membro\/(\d+)/);
+      if(match){
+        const membroId = match[1];
+        processarPresenca(membroId);
+        return; // para de escanear até processar
+      }
+    }
+  }
+  requestAnimationFrame(scanFrame);
+}
+
+async function processarPresenca(membroId){
+  scanning = false; // pausa câmera durante processamento
+  const evId = document.getElementById('sel-evento').value;
+  const box = document.getElementById('result-box');
+  box.className='result-box';
+  box.style.display='block';
+  document.getElementById('result-icon').textContent='⏳';
+  document.getElementById('result-nome').textContent='Verificando...';
+  document.getElementById('result-sub').textContent='';
+
+  try{
+    const res = await fetch('/api/presenca/qr',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({membro_id: parseInt(membroId), evento_id: parseInt(evId)})
+    });
+    const d = await res.json();
+    if(d.ok){
+      box.className='result-box ok';
+      document.getElementById('result-icon').textContent='✅';
+      document.getElementById('result-nome').textContent=d.nome;
+      document.getElementById('result-sub').textContent='Presença confirmada!';
+      addHistorico(d.nome, 'ok');
+    } else if(d.duplicado){
+      box.className='result-box warn';
+      document.getElementById('result-icon').textContent='⚠️';
+      document.getElementById('result-nome').textContent=d.nome;
+      document.getElementById('result-sub').textContent='Presença já registrada anteriormente';
+      addHistorico(d.nome, 'dup');
+    } else {
+      box.className='result-box err';
+      document.getElementById('result-icon').textContent='❌';
+      document.getElementById('result-nome').textContent='Erro';
+      document.getElementById('result-sub').textContent=d.msg||'Membro não encontrado';
+    }
+  }catch{
+    box.className='result-box err';
+    document.getElementById('result-icon').textContent='❌';
+    document.getElementById('result-nome').textContent='Erro de conexão';
+    document.getElementById('result-sub').textContent='Verifique sua internet e tente novamente';
+  }
+
+  // retoma câmera após 2.5s
+  setTimeout(()=>{
+    scanning = true;
+    requestAnimationFrame(scanFrame);
+  }, 2500);
+}
+
+function addHistorico(nome, tipo){
+  historico.unshift({nome, tipo, hora: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
+  document.getElementById('historico-card').style.display='';
+  document.getElementById('historico-lista').innerHTML = historico.map(h=>`
+    <div class="historico-item">
+      <span>${h.nome}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:.72rem;color:var(--muted)">${h.hora}</span>
+        <span class="badge ${h.tipo==='ok'?'badge-ok':'badge-dup'}">${h.tipo==='ok'?'✅ Confirmado':'⚠️ Duplicado'}</span>
+      </div>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>

@@ -301,6 +301,7 @@ input,select,textarea,button{font-family:inherit}
     <div class="sidebar-item" onclick="navTo('pix')" data-page="pix"><span class="ni">💠</span> PIX</div>
     <div class="sidebar-item" onclick="navTo('escala')" data-page="escala"><span class="ni">📋</span> Escala</div>
     <div class="sidebar-item" onclick="navTo('presenca')" data-page="presenca"><span class="ni">✅</span> Presença</div>
+    <div class="sidebar-item" onclick="window.open('/escanear','_blank')"><span class="ni">📷</span> Escanear QR</div>
     <div class="sidebar-sep"></div>
     <div class="sidebar-section admin-only">Administração</div>
     <div class="sidebar-item admin-only" onclick="navTo('financeiro')" data-page="financeiro"><span class="ni">💰</span> Financeiro</div>
@@ -2881,7 +2882,7 @@ async function renderCarteirinha(){
     ? `<img src="${membro.foto}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid rgba(225,29,42,.5)">`
     : `<div style="width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--brand),#7a0d14);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#fff;border:3px solid rgba(225,29,42,.5)">${iniciais(membro.nome)}</div>`;
 
-  const qrData = encodeURIComponent(`MEMBRO:${membro.id}:${membro.nome}:${igreja}`);
+  const qrData = encodeURIComponent(`${location.origin}/membro/${membro.id}`);
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=90x90&color=f5f0f0&bgcolor=161616&data=${qrData}`;
   const idNum = String(membro.id || USER.id).padStart(6,'0');
 

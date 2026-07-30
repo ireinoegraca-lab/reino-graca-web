@@ -133,6 +133,58 @@ def cadastro_publico():
                            nome_igreja=cfg.get('nome_igreja','Reino & Graça'),
                            nome_pastor=cfg.get('nome_pastor','Pastor'))
 
+@app.route('/membro/<int:mid>')
+def perfil_publico(mid):
+    cfg = {r.chave: r.valor for r in Config.query.all()}
+    nome_igreja = cfg.get('nome_igreja','Reino & Graça')
+    m = Membro.query.get(mid)
+    membro = None
+    if m:
+        ministerio_nome = m.ministerio.nome if m.ministerio else None
+        membro = {'id':m.id,'nome':m.nome,'foto':m.foto or '','status':m.status,
+                  'profissao':m.profissao or '','bairro':m.bairro or '',
+                  'nasc':m.nasc or '','ministerio':ministerio_nome or ''}
+    return render_template('membro_perfil.html', membro=membro,
+                           nome_igreja=nome_igreja,
+                           data_hoje=date.today().strftime('%d/%m/%Y'))
+
+@app.route('/escanear')
+@login_required
+def escanear():
+    if not (is_admin() or has_perm('p_membros')):
+        return redirect('/')
+    cfg = {r.chave: r.valor for r in Config.query.all()}
+    hoje = date.today().isoformat()
+    eventos = Evento.query.filter(Evento.data >= hoje).order_by(Evento.data).limit(20).all()
+    # inclui também eventos recentes (últimos 7 dias)
+    from datetime import timedelta
+    semana = (date.today() - timedelta(days=7)).isoformat()
+    recentes = Evento.query.filter(Evento.data >= semana, Evento.data < hoje).order_by(Evento.data.desc()).limit(10).all()
+    todos = recentes + eventos
+    return render_template('escanear.html',
+                           nome_igreja=cfg.get('nome_igreja','Reino & Graça'),
+                           eventos=[{'id':e.id,'titulo':e.titulo,'data':e.data} for e in todos])
+
+@app.route('/api/presenca/qr', methods=['POST'])
+@login_required
+def presenca_qr():
+    if not (is_admin() or has_perm('p_membros')):
+        return jsonify({'ok':False,'msg':'Sem permissão'}), 403
+    d = request.json or {}
+    membro_id = d.get('membro_id')
+    evento_id = d.get('evento_id')
+    if not membro_id or not evento_id:
+        return jsonify({'ok':False,'msg':'Dados incompletos'}), 400
+    m = Membro.query.get(membro_id)
+    if not m:
+        return jsonify({'ok':False,'msg':'Membro não encontrado'}), 404
+    existente = Presenca.query.filter_by(evento_id=evento_id, membro_id=membro_id).first()
+    if existente:
+        return jsonify({'ok':True,'duplicado':True,'nome':m.nome})
+    db.session.add(Presenca(evento_id=evento_id, membro_id=membro_id, presente=True))
+    db.session.commit()
+    return jsonify({'ok':True,'duplicado':False,'nome':m.nome})
+
 # ── AUTH ──────────────────────────────────────────────────────────
 @app.route('/api/login', methods=['POST'])
 def api_login():

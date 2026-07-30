@@ -267,6 +267,37 @@ def carteirinha_me():
         'ministerio_nome': '', 'nasc': '', 'bairro': ''
     }, 'config': cfg})
 
+@app.route('/api/meu-perfil', methods=['PUT'])
+@login_required
+def update_meu_perfil():
+    d = request.json or {}
+    # atualiza senha se enviada
+    nova_senha = d.get('nova_senha','').strip()
+    if nova_senha:
+        if len(nova_senha) < 6:
+            return jsonify({'ok':False,'msg':'Senha deve ter pelo menos 6 caracteres'}), 400
+        current_user.set_senha(nova_senha)
+    # encontra o membro vinculado
+    u = current_user
+    m = None
+    if u.ministerio_id:
+        m = Membro.query.filter_by(ministerio_id=u.ministerio_id).filter(
+            Membro.nome.ilike(f'%{u.nome.split()[0]}%')).first()
+    if not m:
+        m = Membro.query.filter(Membro.nome.ilike(u.nome)).first()
+    if not m:
+        primeiro = u.nome.split()[0]
+        m = Membro.query.filter(Membro.nome.ilike(f'{primeiro}%')).first()
+    if m:
+        if 'tel'       in d: m.tel       = d['tel'] or None
+        if 'email'     in d: m.email     = d['email'] or None
+        if 'profissao' in d: m.profissao = d['profissao'] or None
+        if 'bairro'    in d: m.bairro    = d['bairro'] or None
+        if 'obs'       in d: m.obs       = d['obs'] or None
+        if 'foto'      in d: m.foto      = d['foto'] or None
+    db.session.commit()
+    return jsonify({'ok': True})
+
 @app.route('/api/me')
 def api_me():
     if not current_user.is_authenticated:

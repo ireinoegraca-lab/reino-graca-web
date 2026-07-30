@@ -275,8 +275,8 @@ input,select,textarea,button{font-family:inherit}
   <div class="topbar">
     <img class="topbar-logo" src="/static/logo.jpeg" onerror="this.style.display='none'">
     <div class="topbar-title">Reino &amp; <span>Graça</span></div>
-    <div class="topbar-user" id="tb-user"></div>
-    <div class="topbar-avatar" id="tb-avatar" onclick="doLogout()"></div>
+    <div class="topbar-user" id="tb-user" onclick="abrirMeuPerfil()" style="cursor:pointer"></div>
+    <div class="topbar-avatar" id="tb-avatar" onclick="abrirMeuPerfil()" style="cursor:pointer" title="Meu Perfil"></div>
   </div>
 
   <!-- APP BODY -->
@@ -3161,6 +3161,73 @@ function enviarWhatsApp(){
   </div>
 </div>
 
+<!-- MODAL MEU PERFIL -->
+<div class="modal-overlay" id="modal-meu-perfil" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-header">
+      <span>👤 Meu Perfil</span>
+      <button class="modal-close" onclick="document.getElementById('modal-meu-perfil').style.display='none'">✕</button>
+    </div>
+    <!-- foto -->
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+      <div id="mp-foto-preview" onclick="document.getElementById('mp-foto-input').click()" style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--brand),#7a0d14);display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700;color:#fff;cursor:pointer;overflow:hidden;flex-shrink:0;border:2px solid rgba(225,29,42,.4)"></div>
+      <div>
+        <div style="font-weight:700;font-size:.95rem;margin-bottom:4px" id="mp-nome-display"></div>
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('mp-foto-input').click()">📷 Alterar foto</button>
+        <button class="btn btn-ghost btn-sm" id="mp-remover-foto" onclick="mpRemoverFoto()" style="display:none;color:var(--muted);font-size:.75rem">remover</button>
+        <input type="file" id="mp-foto-input" accept="image/*" style="display:none" onchange="mpPreviewFoto(this)">
+        <input type="file" id="mp-foto-cam" accept="image/*" capture="user" style="display:none" onchange="mpPreviewFoto(this)">
+      </div>
+    </div>
+    <!-- campos -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">WhatsApp / Telefone</label>
+        <input class="form-input" id="mp-tel" type="tel" placeholder="(27) 99999-9999">
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input class="form-input" id="mp-email" type="email" placeholder="seu@email.com">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Profissão</label>
+        <input class="form-input" id="mp-profissao" placeholder="Ex: Professor">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bairro</label>
+        <input class="form-input" id="mp-bairro" placeholder="Ex: Centro">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observações / Bio</label>
+      <textarea class="form-input" id="mp-obs" rows="2" placeholder="Algo sobre você..."></textarea>
+    </div>
+    <!-- senha -->
+    <div style="border-top:1px solid var(--line);margin:16px 0 12px;padding-top:12px">
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:10px">🔐 Alterar senha (opcional)</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nova senha</label>
+          <input class="form-input" id="mp-nova-senha" type="password" placeholder="mínimo 6 caracteres">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmar</label>
+          <input class="form-input" id="mp-conf-senha" type="password" placeholder="repita a senha">
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:4px">
+      <button class="btn btn-outline btn-sm" onclick="doLogout()" style="color:var(--brand2);border-color:var(--brand2)">🚪 Sair</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="document.getElementById('modal-meu-perfil').style.display='none'">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarMeuPerfil()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CONFIRMAÇÕES COMUNICADO -->
 <div class="modal-overlay" id="modal-confirmacoes" onclick="if(event.target===this)this.style.display='none'">
   <div class="modal-box" style="max-width:480px">
@@ -3298,6 +3365,87 @@ async function salvarComunicado(){
   await api('/api/comunicados',{method:'POST',body:JSON.stringify({titulo,texto,ministerio_id:document.getElementById('com-min').value||null})});
   document.getElementById('modal-comunicado').style.display='none';
   renderComunicados();
+}
+
+// ── MEU PERFIL ────────────────────────────────────────────────────
+let _mpFotoBase64 = null;
+let _mpFotoRemovida = false;
+
+async function abrirMeuPerfil(){
+  const d = await api('/api/carteirinha/me');
+  const m = d.membro || {};
+  document.getElementById('mp-nome-display').textContent = USER.nome;
+  document.getElementById('mp-tel').value = m.tel || '';
+  document.getElementById('mp-email').value = m.email || '';
+  document.getElementById('mp-profissao').value = m.profissao || '';
+  document.getElementById('mp-bairro').value = m.bairro || '';
+  document.getElementById('mp-obs').value = m.obs || '';
+  document.getElementById('mp-nova-senha').value = '';
+  document.getElementById('mp-conf-senha').value = '';
+  _mpFotoBase64 = null;
+  _mpFotoRemovida = false;
+  const prev = document.getElementById('mp-foto-preview');
+  if(m.foto){
+    prev.innerHTML=`<img src="${m.foto}" style="width:100%;height:100%;object-fit:cover">`;
+    document.getElementById('mp-remover-foto').style.display='';
+  } else {
+    prev.textContent = iniciais(USER.nome);
+    prev.style.backgroundImage='';
+    document.getElementById('mp-remover-foto').style.display='none';
+  }
+  document.getElementById('modal-meu-perfil').style.display='flex';
+}
+
+function mpPreviewFoto(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _mpFotoBase64 = e.target.result;
+    _mpFotoRemovida = false;
+    const prev = document.getElementById('mp-foto-preview');
+    prev.innerHTML=`<img src="${_mpFotoBase64}" style="width:100%;height:100%;object-fit:cover">`;
+    document.getElementById('mp-remover-foto').style.display='';
+  };
+  reader.readAsDataURL(file);
+}
+
+function mpRemoverFoto(){
+  _mpFotoBase64 = null;
+  _mpFotoRemovida = true;
+  const prev = document.getElementById('mp-foto-preview');
+  prev.innerHTML = iniciais(USER.nome);
+  document.getElementById('mp-remover-foto').style.display='none';
+  document.getElementById('mp-foto-input').value='';
+}
+
+async function salvarMeuPerfil(){
+  const novaSenha = document.getElementById('mp-nova-senha').value;
+  const confSenha = document.getElementById('mp-conf-senha').value;
+  if(novaSenha && novaSenha !== confSenha){ toast('As senhas não coincidem','error'); return; }
+  if(novaSenha && novaSenha.length < 6){ toast('Senha deve ter pelo menos 6 caracteres','error'); return; }
+  const body = {
+    tel: document.getElementById('mp-tel').value.trim(),
+    email: document.getElementById('mp-email').value.trim(),
+    profissao: document.getElementById('mp-profissao').value.trim(),
+    bairro: document.getElementById('mp-bairro').value.trim(),
+    obs: document.getElementById('mp-obs').value.trim(),
+    foto: _mpFotoRemovida ? '' : (_mpFotoBase64 || undefined),
+  };
+  if(novaSenha) body.nova_senha = novaSenha;
+  const res = await api('/api/meu-perfil', {method:'PUT', body:JSON.stringify(body)});
+  if(res.ok){
+    toast('Perfil atualizado!','success');
+    document.getElementById('modal-meu-perfil').style.display='none';
+    // atualiza avatar se foto mudou
+    if(_mpFotoBase64){
+      const av = document.getElementById('tb-avatar');
+      av.innerHTML = `<img src="${_mpFotoBase64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    } else if(_mpFotoRemovida){
+      document.getElementById('tb-avatar').textContent = iniciais(USER.nome);
+    }
+  } else {
+    toast(res.msg || 'Erro ao salvar','error');
+  }
 }
 
 async function verConfirmacoes(id, titulo, totalLeituras){

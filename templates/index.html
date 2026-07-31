@@ -789,6 +789,9 @@ input,select,textarea,button{font-family:inherit}
   </div><!-- /main -->
   </div><!-- /app-body -->
 
+  <!-- PÍLULA: traz o menu de volta -->
+  <div id="nav-pill" onclick="document.getElementById('bottom-nav').style.transform='';this.style.display='none'" style="display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);background:var(--brand);color:#fff;font-size:.72rem;font-weight:700;padding:6px 22px;border-radius:12px 12px 0 0;z-index:102;cursor:pointer;letter-spacing:.05em">▲ Menu</div>
+
   <!-- BOTTOM NAV -->
   <div class="bottom-nav" id="bottom-nav">
     <div class="nav-item active" onclick="navTo('dashboard')" data-page="dashboard">
@@ -1444,6 +1447,18 @@ function navTo(page){
   if(pg)pg.classList.add('active');
   document.querySelectorAll(`[data-page="${page}"]`).forEach(n=>n.classList.add('active'));
   const nm=document.getElementById('nav-more');if(nm)nm.classList.remove('open');
+  // esconde nav mobile após selecionar página
+  const bnav=document.getElementById('bottom-nav');
+  const pill=document.getElementById('nav-pill');
+  if(bnav){
+    bnav.style.transform='';
+    if(pill) pill.style.display='none';
+    clearTimeout(window._navHide);
+    if(page!=='dashboard') window._navHide=setTimeout(()=>{
+      bnav.style.transform='translateY(100%)';
+      if(pill) pill.style.display='block';
+    },800);
+  }
   if(page==='dashboard')renderDashboard();
   if(page==='membros')renderMembros();
   if(page==='ministerios'){fecharDetalhe();renderMinisterios();}
@@ -3027,42 +3042,6 @@ function enviarWhatsApp(){
   }
 })();
 
-// ── AUTO-HIDE NAV MOBILE ──────────────────────────────────────────
-(function(){
-  const nav = document.getElementById('bottom-nav');
-  if(!nav) return;
-
-  // cria pílula de "mostrar menu"
-  const pill = document.createElement('div');
-  pill.id = 'nav-pill';
-  pill.innerHTML = '▲ Menu';
-  pill.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);background:var(--brand);color:#fff;font-size:.7rem;font-weight:700;padding:5px 18px;border-radius:12px 12px 0 0;z-index:101;cursor:pointer;transition:transform .25s ease;letter-spacing:.05em;display:none';
-  document.body.appendChild(pill);
-
-  function hideNav(){
-    nav.style.transform  = 'translateY(100%)';
-    pill.style.display   = 'block';
-    setTimeout(()=>{ pill.style.transform = 'translateX(-50%) translateY(0)'; }, 20);
-  }
-  function showNav(){
-    nav.style.transform  = '';
-    pill.style.transform = 'translateX(-50%) translateY(100%)';
-    setTimeout(()=>{ pill.style.display = 'none'; }, 260);
-  }
-
-  pill.addEventListener('click', showNav);
-
-  // esconde 1.5s após navegar (exceto dashboard)
-  const _origNavTo = window.navTo;
-  window.navTo = function(page){
-    showNav(); // sempre mostra primeiro
-    _origNavTo(page);
-    if(page !== 'dashboard'){
-      clearTimeout(window._navHideTimer);
-      window._navHideTimer = setTimeout(hideNav, 1500);
-    }
-  };
-})();
 </script>
 
 <!-- MODAL ORAÇÃO -->

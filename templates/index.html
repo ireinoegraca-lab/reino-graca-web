@@ -2906,8 +2906,7 @@ async function renderCarteirinha(){
       <!-- rodapé com QR -->
       <div style="padding:0 18px 18px;display:flex;align-items:flex-end;justify-content:space-between">
         <div>
-          <div style="font-size:.65rem;color:#9b9296;margin-bottom:2px">Pastoral</div>
-          <div style="font-size:.75rem;color:#f5f0f0;font-weight:600">${pastor}</div>
+          ${pastor&&pastor!=='Pastor'?`<div style="font-size:.65rem;color:#9b9296;margin-bottom:2px">Pastoral</div><div style="font-size:.75rem;color:#f5f0f0;font-weight:600">${pastor}</div>`:''}
           <div style="font-size:.6rem;color:#9b9296;margin-top:8px;letter-spacing:.05em">VÁLIDA ENQUANTO CONFIRMADA</div>
         </div>
         <img src="${qrUrl}" width="80" height="80" style="border-radius:8px;opacity:.85" onerror="this.style.display='none'">

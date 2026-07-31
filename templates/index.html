@@ -3029,28 +3029,20 @@ function enviarWhatsApp(){
 
 // ── HIDE NAV ON SCROLL ────────────────────────────────────────────
 (function(){
-  const main = document.querySelector('.main');
-  const nav  = document.getElementById('bottom-nav');
-  if(!main || !nav) return;
+  const nav = document.getElementById('bottom-nav');
+  if(!nav) return;
   let lastY = 0, ticking = false;
-  main.addEventListener('scroll', ()=>{
+  window.addEventListener('scroll', ()=>{
     if(ticking) return;
     ticking = true;
     requestAnimationFrame(()=>{
-      const y = main.scrollTop;
-      // esconde ao rolar 40px para baixo, mostra ao rolar para cima
+      const y = window.scrollY;
       if(y > lastY + 8)      nav.style.transform = 'translateY(100%)';
       else if(y < lastY - 4) nav.style.transform = '';
       lastY = y;
       ticking = false;
     });
-  });
-  // garante que nav aparece ao trocar de página
-  const origNavTo = window.navTo;
-  window.navTo = function(page){
-    nav.style.transform = '';
-    origNavTo(page);
-  };
+  }, {passive:true});
 })();
 </script>
 

@@ -85,6 +85,9 @@ select:focus,input:focus{border-color:var(--brand)}
       <button class="btn btn-outline" id="btn-torch" onclick="toggleTorch()" style="display:none">🔦 Lanterna</button>
     </div>
 
+    <!-- debug: mostra o que foi lido -->
+    <div id="debug-raw" style="margin-top:10px;font-size:.7rem;color:var(--muted);word-break:break-all;background:#0f0f0f;padding:8px 10px;border-radius:8px;min-height:28px">Aguardando leitura...</div>
+
     <!-- resultado -->
     <div class="result-box" id="result-box">
       <div class="result-icon" id="result-icon"></div>
@@ -193,16 +196,30 @@ function scanFrame(){
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, sx, sy, size, size, 0, 0, scanSize, scanSize);
 
+  // tenta 1: recorte central
   const img = ctx.getImageData(0, 0, scanSize, scanSize);
-  // tenta QR normal e invertido
-  const code = jsQR(img.data, img.width, img.height, {inversionAttempts:'attemptBoth'});
+  let code = jsQR(img.data, img.width, img.height, {inversionAttempts:'attemptBoth'});
+
+  // tenta 2: frame completo se recorte falhou
+  if(!code){
+    const fc = document.createElement('canvas');
+    fc.width = vw; fc.height = vh;
+    const fc2 = fc.getContext('2d');
+    fc2.drawImage(video, 0, 0, vw, vh);
+    const img2 = fc2.getImageData(0, 0, vw, vh);
+    code = jsQR(img2.data, img2.width, img2.height, {inversionAttempts:'attemptBoth'});
+  }
 
   if(code){
-    const match = code.data.match(/\/membro\/(\d+)/);
+    const raw = code.data;
+    document.getElementById('debug-raw').textContent = '📷 Lido: ' + raw;
+    const match = raw.match(/\/membro\/(\d+)/) || raw.match(/^(\d+)$/);
     if(match){
-      if(navigator.vibrate) navigator.vibrate(80);
+      if(navigator.vibrate) navigator.vibrate([80,40,80]);
       processarPresenca(match[1]);
       return;
+    } else {
+      document.getElementById('debug-raw').textContent = '⚠️ QR lido mas não é carteirinha: ' + raw;
     }
   }
   requestAnimationFrame(scanFrame);

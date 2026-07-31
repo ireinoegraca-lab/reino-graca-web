@@ -77,7 +77,7 @@ input,select,textarea,button{font-family:inherit}
 .sidebar-section{font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:10px 20px 4px}
 
 /* ── BOTTOM NAV (mobile) ── */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--line);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--line);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);transition:transform .25s ease}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;cursor:pointer;color:var(--muted);font-size:.62rem;font-weight:600;transition:.2s;min-width:0}
 .nav-item.active{color:var(--brand2)}
 .nav-item .ni{font-size:1.2rem}
@@ -3025,6 +3025,32 @@ function enviarWhatsApp(){
     verificarPendentesAdmin();
     if(ok.precisa_confirmar) mostrarModalConfirmacao();
   }
+})();
+
+// ── HIDE NAV ON SCROLL ────────────────────────────────────────────
+(function(){
+  const main = document.querySelector('.main');
+  const nav  = document.getElementById('bottom-nav');
+  if(!main || !nav) return;
+  let lastY = 0, ticking = false;
+  main.addEventListener('scroll', ()=>{
+    if(ticking) return;
+    ticking = true;
+    requestAnimationFrame(()=>{
+      const y = main.scrollTop;
+      // esconde ao rolar 40px para baixo, mostra ao rolar para cima
+      if(y > lastY + 8)      nav.style.transform = 'translateY(100%)';
+      else if(y < lastY - 4) nav.style.transform = '';
+      lastY = y;
+      ticking = false;
+    });
+  });
+  // garante que nav aparece ao trocar de página
+  const origNavTo = window.navTo;
+  window.navTo = function(page){
+    nav.style.transform = '';
+    origNavTo(page);
+  };
 })();
 </script>
 

@@ -79,9 +79,10 @@ select:focus,input:focus{border-color:var(--brand)}
         <div class="scan-corner br"></div>
       </div>
     </div>
-    <div style="display:flex;gap:10px">
-      <button class="btn" id="btn-iniciar" onclick="iniciarCamera()">📷 Iniciar Câmera</button>
-      <button class="btn btn-outline" id="btn-parar" onclick="pararCamera()" style="display:none">⏹ Parar</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" id="btn-iniciar" onclick="iniciarCamera()" style="flex:1">📷 Iniciar Câmera</button>
+      <button class="btn btn-outline" id="btn-parar" onclick="pararCamera()" style="display:none;flex:1">⏹ Parar</button>
+      <button class="btn btn-outline" id="btn-torch" onclick="toggleTorch()" style="display:none">🔦 Lanterna</button>
     </div>
 
     <!-- resultado -->
@@ -102,17 +103,40 @@ select:focus,input:focus{border-color:var(--brand)}
 <script>
 let stream = null;
 let scanning = false;
-let scanTimer = null;
+let torchOn = false;
+let lastScan = 0;
 const historico = [];
 
 async function iniciarCamera(){
   const ev = document.getElementById('sel-evento').value;
   if(!ev){ alert('Selecione um evento primeiro.'); return; }
   try{
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    // solicita alta resolução e foco contínuo
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{
+        facingMode:'environment',
+        width:{ideal:1280},
+        height:{ideal:720},
+        focusMode:'continuous'
+      },
+      audio:false
+    });
     const video = document.getElementById('cam-video');
     video.srcObject = stream;
     await video.play();
+
+    // ativa foco contínuo via applyConstraints se suportado
+    const track = stream.getVideoTracks()[0];
+    if(track && track.applyConstraints){
+      try{ await track.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch(_){}
+    }
+
+    // mostra botão lanterna se suportado
+    if(track){
+      const caps = track.getCapabilities ? track.getCapabilities() : {};
+      if(caps.torch) document.getElementById('btn-torch').style.display='';
+    }
+
     document.getElementById('btn-iniciar').style.display='none';
     document.getElementById('btn-parar').style.display='';
     document.getElementById('scan-line').style.display='';
@@ -124,37 +148,61 @@ async function iniciarCamera(){
   }
 }
 
+async function toggleTorch(){
+  const track = stream && stream.getVideoTracks()[0];
+  if(!track) return;
+  torchOn = !torchOn;
+  try{
+    await track.applyConstraints({advanced:[{torch: torchOn}]});
+    document.getElementById('btn-torch').textContent = torchOn ? '🔦 Lanterna ON' : '🔦 Lanterna';
+  }catch(_){ torchOn = !torchOn; }
+}
+
 function pararCamera(){
   scanning = false;
+  torchOn = false;
   if(stream) stream.getTracks().forEach(t=>t.stop());
   stream = null;
   document.getElementById('cam-video').srcObject = null;
   document.getElementById('btn-iniciar').style.display='';
   document.getElementById('btn-parar').style.display='none';
+  document.getElementById('btn-torch').style.display='none';
   document.getElementById('scan-line').style.display='none';
   document.getElementById('scan-frame').style.display='none';
 }
 
 function scanFrame(){
   if(!scanning) return;
+  const now = Date.now();
+  // limita a 8 tentativas por segundo para não sobrecarregar
+  if(now - lastScan < 120){ requestAnimationFrame(scanFrame); return; }
+  lastScan = now;
+
   const video = document.getElementById('cam-video');
   const canvas = document.getElementById('cam-canvas');
-  if(video.readyState === video.HAVE_ENOUGH_DATA){
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video,0,0,canvas.width,canvas.height);
-    const img = ctx.getImageData(0,0,canvas.width,canvas.height);
-    const code = jsQR(img.data, img.width, img.height, {inversionAttempts:'dontInvert'});
-    if(code){
-      const url = code.data;
-      // extrai ID da URL /membro/<id>
-      const match = url.match(/\/membro\/(\d+)/);
-      if(match){
-        const membroId = match[1];
-        processarPresenca(membroId);
-        return; // para de escanear até processar
-      }
+  if(video.readyState !== video.HAVE_ENOUGH_DATA){ requestAnimationFrame(scanFrame); return; }
+
+  const vw = video.videoWidth, vh = video.videoHeight;
+
+  // recorta região central (60% da menor dimensão) para melhorar leitura
+  const size = Math.min(vw, vh) * 0.65;
+  const sx = (vw - size) / 2, sy = (vh - size) / 2;
+  const scanSize = Math.round(size);
+  canvas.width = scanSize;
+  canvas.height = scanSize;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, sx, sy, size, size, 0, 0, scanSize, scanSize);
+
+  const img = ctx.getImageData(0, 0, scanSize, scanSize);
+  // tenta QR normal e invertido
+  const code = jsQR(img.data, img.width, img.height, {inversionAttempts:'attemptBoth'});
+
+  if(code){
+    const match = code.data.match(/\/membro\/(\d+)/);
+    if(match){
+      if(navigator.vibrate) navigator.vibrate(80);
+      processarPresenca(match[1]);
+      return;
     }
   }
   requestAnimationFrame(scanFrame);

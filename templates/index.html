@@ -3027,21 +3027,29 @@ function enviarWhatsApp(){
   }
 })();
 
-// ── HIDE NAV ON SCROLL ────────────────────────────────────────────
+// ── HIDE NAV ON SCROLL (mobile touch) ────────────────────────────
 (function(){
   const nav = document.getElementById('bottom-nav');
   if(!nav) return;
-  let lastY = 0, ticking = false;
+  let touchStartY = 0;
+
+  document.addEventListener('touchstart', e=>{
+    touchStartY = e.touches[0].clientY;
+  }, {passive:true});
+
+  document.addEventListener('touchmove', e=>{
+    const dy = touchStartY - e.touches[0].clientY;
+    if(dy > 12)       nav.style.transform = 'translateY(100%)'; // rolou pra baixo
+    else if(dy < -12) nav.style.transform = '';                 // rolou pra cima
+  }, {passive:true});
+
+  // scroll normal (desktop)
+  let lastY = 0;
   window.addEventListener('scroll', ()=>{
-    if(ticking) return;
-    ticking = true;
-    requestAnimationFrame(()=>{
-      const y = window.scrollY;
-      if(y > lastY + 8)      nav.style.transform = 'translateY(100%)';
-      else if(y < lastY - 4) nav.style.transform = '';
-      lastY = y;
-      ticking = false;
-    });
+    const y = window.scrollY;
+    if(y > lastY + 8)      nav.style.transform = 'translateY(100%)';
+    else if(y < lastY - 4) nav.style.transform = '';
+    lastY = y;
   }, {passive:true});
 })();
 </script>

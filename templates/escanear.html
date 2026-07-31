@@ -200,13 +200,11 @@ function scanFrame(){
   const img = ctx.getImageData(0, 0, scanSize, scanSize);
   let code = jsQR(img.data, img.width, img.height, {inversionAttempts:'attemptBoth'});
 
-  // tenta 2: frame completo se recorte falhou
+  // tenta 2: frame completo (reutiliza canvas existente)
   if(!code){
-    const fc = document.createElement('canvas');
-    fc.width = vw; fc.height = vh;
-    const fc2 = fc.getContext('2d');
-    fc2.drawImage(video, 0, 0, vw, vh);
-    const img2 = fc2.getImageData(0, 0, vw, vh);
+    canvas.width = vw; canvas.height = vh;
+    ctx.drawImage(video, 0, 0, vw, vh);
+    const img2 = ctx.getImageData(0, 0, vw, vh);
     code = jsQR(img2.data, img2.width, img2.height, {inversionAttempts:'attemptBoth'});
   }
 

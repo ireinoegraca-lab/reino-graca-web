@@ -3868,9 +3868,13 @@ function switchPresencaTab(tab){
 async function renderPresenca(){
   const sel = document.getElementById('presenca-evento-sel');
   const evs = (DATA.eventos||[]).slice().sort((a,b)=>b.data.localeCompare(a.data)).slice(0,60);
+  const prevId = sel.value;
   sel.innerHTML = '<option value="">— escolha um evento —</option>'
     + evs.map(e=>`<option value="${e.id}">${e.titulo} (${fmtData(e.data).join(' ')})</option>`).join('');
-  document.getElementById('presenca-area').style.display='none';
+  if(prevId) sel.value = prevId;
+  // sempre recarrega do servidor (captura presenças feitas via QR)
+  if(sel.value) loadPresenca();
+  else document.getElementById('presenca-area').style.display='none';
 }
 
 async function loadPresenca(){
@@ -3878,7 +3882,8 @@ async function loadPresenca(){
   if(!id){ document.getElementById('presenca-area').style.display='none'; return; }
   const res = await api('/api/eventos/'+id+'/presenca');
   presencaState = {eventoId: id, registros: {}};
-  (res.presenca||[]).forEach(p=>{ presencaState.registros[p.membro_id]=p.presente; });
+  const rows = Array.isArray(res) ? res : (res.presenca||[]);
+  rows.forEach(p=>{ presencaState.registros[p.membro_id]=p.presente; });
   DATA.membros.forEach(m=>{ if(presencaState.registros[m.id]===undefined) presencaState.registros[m.id]=false; });
   document.getElementById('presenca-area').style.display='block';
   renderPresencaLista();

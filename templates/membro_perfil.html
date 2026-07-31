@@ -55,8 +55,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-he
         {% endif %}
       </div>
       <div class="nome">{{ membro.nome }}</div>
+      <div class="ministerio" style="color:rgba(255,200,200,.9);font-weight:700;font-size:.82rem;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">{{ membro.funcao }}</div>
       {% if membro.ministerio %}
-      <div class="ministerio">{{ membro.ministerio }}</div>
+      <div class="ministerio">🎺 {{ membro.ministerio }}</div>
       {% endif %}
     </div>
     <div class="card-body">
@@ -74,6 +75,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-he
         <span class="info-label">Status</span>
         <span class="info-value {% if membro.status == 'Ativo' %}status-ativo{% else %}status-inativo{% endif %}">{{ membro.status }}</span>
       </div>
+      <div class="info-row">
+        <span class="info-label">Função</span>
+        <span class="info-value" style="color:var(--brand)">{{ membro.funcao }}</span>
+      </div>
+      {% if membro.ministerio %}
+      <div class="info-row">
+        <span class="info-label">Ministério</span>
+        <span class="info-value">{{ membro.ministerio }}</span>
+      </div>
+      {% endif %}
       {% if membro.profissao %}
       <div class="info-row">
         <span class="info-label">Profissão</span>

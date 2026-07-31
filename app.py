@@ -144,10 +144,16 @@ def perfil_publico(mid):
     m = Membro.query.get(mid)
     membro = None
     if m:
-        ministerio_nome = m.ministerio.nome if m.ministerio else None
+        ministerio_nome = m.ministerio.nome if m.ministerio else ''
+        u_vinc = Usuario.query.filter_by(nome=m.nome).first()
+        role_labels = {'membro':'Membro','lider':'Líder','secretaria':'Secretaria',
+                       'tesoureiro':'Tesoureiro','pastor':'Pastor','admin':'Administrador'}
+        funcao = role_labels.get(u_vinc.role, u_vinc.role or 'Membro') if u_vinc else 'Membro'
+        if not ministerio_nome and u_vinc and u_vinc.ministerio:
+            ministerio_nome = u_vinc.ministerio.nome
         membro = {'id':m.id,'nome':m.nome,'foto':m.foto or '','status':m.status,
                   'profissao':m.profissao or '','bairro':m.bairro or '',
-                  'nasc':m.nasc or '','ministerio':ministerio_nome or ''}
+                  'nasc':m.nasc or '','ministerio':ministerio_nome,'funcao':funcao}
     return render_template('membro_perfil.html', membro=membro,
                            nome_igreja=nome_igreja,
                            data_hoje=date.today().strftime('%d/%m/%Y'))

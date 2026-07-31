@@ -2915,7 +2915,7 @@ async function renderCarteirinha(){
     : `<div style="width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--brand),#7a0d14);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#fff;border:3px solid rgba(225,29,42,.5)">${iniciais(membro.nome)}</div>`;
 
   const qrData = encodeURIComponent(`${location.origin}/membro/${membro.id}`);
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=90x90&color=f5f0f0&bgcolor=161616&data=${qrData}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&color=000000&bgcolor=ffffff&qzone=2&data=${qrData}`;
   const idNum = String(membro.id || USER.id).padStart(6,'0');
 
   el.innerHTML = `
@@ -2945,7 +2945,7 @@ async function renderCarteirinha(){
           ${pastor&&pastor!=='Pastor'?`<div style="font-size:.65rem;color:#9b9296;margin-bottom:2px">Pastoral</div><div style="font-size:.75rem;color:#f5f0f0;font-weight:600">${pastor}</div>`:''}
           <div style="font-size:.6rem;color:#9b9296;margin-top:8px;letter-spacing:.05em">VÁLIDA ENQUANTO CONFIRMADA</div>
         </div>
-        <img src="${qrUrl}" width="80" height="80" style="border-radius:8px;opacity:.85" onerror="this.style.display='none'">
+        <img src="${qrUrl}" width="88" height="88" style="border-radius:8px;background:#fff;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,.4)" onerror="this.style.display='none'">
       </div>
     </div>`;
 }

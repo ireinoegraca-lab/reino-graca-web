@@ -20,6 +20,7 @@ class Perfil(db.Model):
     p_usuarios    = db.Column(db.Boolean, default=False)
     p_perfis      = db.Column(db.Boolean, default=False)
     pode_aprovar  = db.Column(db.Boolean, default=False)
+    p_escanear    = db.Column(db.Boolean, default=False)
     usuarios      = db.relationship('Usuario', backref='perfil', lazy=True)
 
     def to_dict(self):
@@ -27,7 +28,8 @@ class Perfil(db.Model):
                 'p_membros':self.p_membros,'p_ministerios':self.p_ministerios,
                 'p_agenda':self.p_agenda,'p_louvor':self.p_louvor,'p_mural':self.p_mural,
                 'p_financeiro':self.p_financeiro,'p_usuarios':self.p_usuarios,
-                'p_perfis':self.p_perfis,'pode_aprovar':self.pode_aprovar}
+                'p_perfis':self.p_perfis,'pode_aprovar':self.pode_aprovar,
+                'p_escanear':self.p_escanear}
 
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'usuarios'

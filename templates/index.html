@@ -1362,6 +1362,7 @@ input,select,textarea,button{font-family:inherit}
           <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="perm-p_financeiro"> Financeiro</label>
           <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="perm-p_usuarios"> Usuários</label>
           <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="perm-p_perfis"> Gerenciar Perfis</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer"><input type="checkbox" id="perm-p_escanear"> 📷 Escanear QR</label>
           <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer;grid-column:span 2"><input type="checkbox" id="perm-pode_aprovar"> Aprovar cadastros pendentes</label>
         </div>
       </div>
@@ -2660,7 +2661,7 @@ async function delUsuario(id){
 // ── PERFIS ────────────────────────────────────────────────────────
 const PERMS_LABELS={p_membros:'Membros',p_ministerios:'Ministérios',p_agenda:'Agenda',
   p_louvor:'Louvor',p_mural:'Mural',p_financeiro:'Financeiro',p_usuarios:'Usuários',
-  p_perfis:'Perfis',pode_aprovar:'Aprovar cadastros'};
+  p_perfis:'Perfis',p_escanear:'📷 Escanear QR',pode_aprovar:'Aprovar cadastros'};
 
 async function renderPerfis(){
   DATA_PERFIS=await api('/api/perfis').catch(()=>[]);

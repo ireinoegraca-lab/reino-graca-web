@@ -161,7 +161,7 @@ def perfil_publico(mid):
 @app.route('/escanear')
 @login_required
 def escanear():
-    if not (is_admin() or has_perm('p_membros')):
+    if not has_perm('p_escanear'):
         return redirect('/')
     cfg = {r.chave: r.valor for r in Config.query.all()}
     hoje = date.today().isoformat()
@@ -178,7 +178,7 @@ def escanear():
 @app.route('/api/presenca/qr', methods=['POST'])
 @login_required
 def presenca_qr():
-    if not (is_admin() or has_perm('p_membros')):
+    if not has_perm('p_escanear'):
         return jsonify({'ok':False,'msg':'Sem permissão'}), 403
     d = request.json or {}
     membro_id = d.get('membro_id')
@@ -769,6 +769,7 @@ def add_perfil():
                p_agenda=d.get('p_agenda',True), p_louvor=d.get('p_louvor',False),
                p_mural=d.get('p_mural',True), p_financeiro=d.get('p_financeiro',False),
                p_usuarios=d.get('p_usuarios',False), p_perfis=d.get('p_perfis',False),
+               p_escanear=d.get('p_escanear',False),
                pode_aprovar=d.get('pode_aprovar',False))
     db.session.add(p); db.session.commit()
     return jsonify({'ok':True,'perfil':p.to_dict()})
@@ -780,7 +781,7 @@ def update_perfil(pid):
     p = Perfil.query.get_or_404(pid)
     if p.builtin: return jsonify({'ok':False,'msg':'Perfis padrão não podem ser editados'}), 400
     d = request.json
-    for k in ['nome','cor','p_membros','p_ministerios','p_agenda','p_louvor','p_mural','p_financeiro','p_usuarios','p_perfis','pode_aprovar']:
+    for k in ['nome','cor','p_membros','p_ministerios','p_agenda','p_louvor','p_mural','p_financeiro','p_usuarios','p_perfis','pode_aprovar','p_escanear']:
         if k in d: setattr(p, k, d[k])
     db.session.commit()
     return jsonify({'ok':True,'perfil':p.to_dict()})
@@ -1095,22 +1096,22 @@ def portal():
 PERFIS_PADRAO = [
     {'nome':'Pastor',     'cor':'#c9922a','builtin':True,
      'p_membros':True,'p_ministerios':True,'p_agenda':True,'p_louvor':True,'p_mural':True,
-     'p_financeiro':True,'p_usuarios':True,'p_perfis':True,'pode_aprovar':True},
+     'p_financeiro':True,'p_usuarios':True,'p_perfis':True,'pode_aprovar':True,'p_escanear':True},
     {'nome':'Administrador','cor':'#e11d2a','builtin':True,
      'p_membros':True,'p_ministerios':True,'p_agenda':True,'p_louvor':True,'p_mural':True,
-     'p_financeiro':True,'p_usuarios':True,'p_perfis':True,'pode_aprovar':True},
+     'p_financeiro':True,'p_usuarios':True,'p_perfis':True,'pode_aprovar':True,'p_escanear':True},
     {'nome':'Secretaria', 'cor':'#60a5fa','builtin':True,
      'p_membros':True,'p_ministerios':True,'p_agenda':True,'p_louvor':False,'p_mural':True,
-     'p_financeiro':False,'p_usuarios':False,'p_perfis':False,'pode_aprovar':True},
+     'p_financeiro':False,'p_usuarios':False,'p_perfis':False,'pode_aprovar':True,'p_escanear':True},
     {'nome':'Líder',      'cor':'#a78bfa','builtin':True,
      'p_membros':True,'p_ministerios':True,'p_agenda':True,'p_louvor':True,'p_mural':True,
-     'p_financeiro':False,'p_usuarios':False,'p_perfis':False,'pode_aprovar':False},
+     'p_financeiro':False,'p_usuarios':False,'p_perfis':False,'pode_aprovar':False,'p_escanear':True},
     {'nome':'Tesoureiro', 'cor':'#22c55e','builtin':True,
      'p_membros':False,'p_ministerios':False,'p_agenda':True,'p_louvor':False,'p_mural':True,
-     'p_financeiro':True,'p_usuarios':False,'p_perfis':False,'pode_aprovar':False},
+     'p_financeiro':True,'p_usuarios':False,'p_perfis':False,'pode_aprovar':False,'p_escanear':False},
     {'nome':'Membro',     'cor':'#9b9296','builtin':True,
      'p_membros':False,'p_ministerios':False,'p_agenda':True,'p_louvor':True,'p_mural':True,
-     'p_financeiro':False,'p_usuarios':False,'p_perfis':False,'pode_aprovar':False},
+     'p_financeiro':False,'p_usuarios':False,'p_perfis':False,'pode_aprovar':False,'p_escanear':False},
 ]
 
 def migrate_columns():
@@ -1136,6 +1137,7 @@ def migrate_columns():
         add_col('musicas','link_youtube',  'VARCHAR(300)')
         add_col('musicas','categoria',     'VARCHAR(50)')
         add_col('musicas','ministerio_id', 'INTEGER REFERENCES ministerios(id)')
+        add_col('perfis','p_escanear', 'BOOLEAN DEFAULT FALSE')
         conn.close()
 
 def init_db():
@@ -1143,10 +1145,15 @@ def init_db():
         db.create_all()
         # Migra colunas novas em tabelas existentes
         migrate_columns()
-        # Seed perfis padrão
+        # Seed / atualiza perfis padrão
         for pd in PERFIS_PADRAO:
-            if not Perfil.query.filter_by(nome=pd['nome']).first():
+            p = Perfil.query.filter_by(nome=pd['nome']).first()
+            if not p:
                 db.session.add(Perfil(**pd))
+            else:
+                # atualiza permissões de perfis builtin se nova coluna foi adicionada
+                if p.p_escanear is None:
+                    p.p_escanear = pd.get('p_escanear', False)
         db.session.commit()
         # Seed config padrão
         configs_padrao = [

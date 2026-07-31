@@ -58,7 +58,7 @@ input,select,textarea,button{font-family:inherit}
 .login-panel{display:none}.login-panel.active{display:block}
 
 /* ── LAYOUT ── */
-#app{display:none;flex-direction:column;height:100vh;overflow:hidden}
+#app{display:none;flex-direction:column;min-height:100vh}
 .topbar{background:var(--bg2);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
 .topbar-logo{width:30px;height:30px;border-radius:50%;object-fit:cover}
 .topbar-title{font-family:'Cinzel',serif;font-size:.85rem;font-weight:700;flex:1}
@@ -95,7 +95,7 @@ input,select,textarea,button{font-family:inherit}
 }
 
 /* ── PAGES ── */
-.main{flex:1;padding:16px;padding-bottom:80px;min-width:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.main{flex:1;padding:16px;padding-bottom:80px;min-width:0}
 .page{display:none}.page.active{display:block}
 .page-header{margin-bottom:20px}
 .page-title{font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700}
@@ -3027,18 +3027,41 @@ function enviarWhatsApp(){
   }
 })();
 
-// ── HIDE NAV ON SCROLL ────────────────────────────────────────────
+// ── AUTO-HIDE NAV MOBILE ──────────────────────────────────────────
 (function(){
-  const nav  = document.getElementById('bottom-nav');
-  const main = document.querySelector('.main');
-  if(!nav || !main) return;
-  let lastY = 0;
-  main.addEventListener('scroll', ()=>{
-    const y = main.scrollTop;
-    if(y > lastY + 10)     nav.style.transform = 'translateY(100%)';
-    else if(y < lastY - 6) nav.style.transform = '';
-    lastY = y;
-  }, {passive:true});
+  const nav = document.getElementById('bottom-nav');
+  if(!nav) return;
+
+  // cria pílula de "mostrar menu"
+  const pill = document.createElement('div');
+  pill.id = 'nav-pill';
+  pill.innerHTML = '▲ Menu';
+  pill.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);background:var(--brand);color:#fff;font-size:.7rem;font-weight:700;padding:5px 18px;border-radius:12px 12px 0 0;z-index:101;cursor:pointer;transition:transform .25s ease;letter-spacing:.05em;display:none';
+  document.body.appendChild(pill);
+
+  function hideNav(){
+    nav.style.transform  = 'translateY(100%)';
+    pill.style.display   = 'block';
+    setTimeout(()=>{ pill.style.transform = 'translateX(-50%) translateY(0)'; }, 20);
+  }
+  function showNav(){
+    nav.style.transform  = '';
+    pill.style.transform = 'translateX(-50%) translateY(100%)';
+    setTimeout(()=>{ pill.style.display = 'none'; }, 260);
+  }
+
+  pill.addEventListener('click', showNav);
+
+  // esconde 1.5s após navegar (exceto dashboard)
+  const _origNavTo = window.navTo;
+  window.navTo = function(page){
+    showNav(); // sempre mostra primeiro
+    _origNavTo(page);
+    if(page !== 'dashboard'){
+      clearTimeout(window._navHideTimer);
+      window._navHideTimer = setTimeout(hideNav, 1500);
+    }
+  };
 })();
 </script>
 

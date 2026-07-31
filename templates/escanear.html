@@ -244,14 +244,16 @@ async function processarPresenca(membroId){
       box.className='result-box ok';
       document.getElementById('result-icon').textContent='✅';
       document.getElementById('result-nome').textContent=d.nome;
-      document.getElementById('result-sub').textContent='Presença confirmada!';
-      addHistorico(d.nome, 'ok');
+      const sub = [d.funcao||'', d.ministerio||''].filter(Boolean).join(' · ');
+      document.getElementById('result-sub').textContent = sub ? sub + ' · Presença confirmada!' : 'Presença confirmada!';
+      addHistorico(d.nome, 'ok', d.funcao, d.ministerio);
     } else if(d.duplicado){
       box.className='result-box warn';
       document.getElementById('result-icon').textContent='⚠️';
       document.getElementById('result-nome').textContent=d.nome;
-      document.getElementById('result-sub').textContent='Presença já registrada anteriormente';
-      addHistorico(d.nome, 'dup');
+      const sub2 = [d.funcao||'', d.ministerio||''].filter(Boolean).join(' · ');
+      document.getElementById('result-sub').textContent = sub2 ? sub2 + ' · Já registrado' : 'Presença já registrada anteriormente';
+      addHistorico(d.nome, 'dup', d.funcao, d.ministerio);
     } else {
       box.className='result-box err';
       document.getElementById('result-icon').textContent='❌';
@@ -272,17 +274,22 @@ async function processarPresenca(membroId){
   }, 2500);
 }
 
-function addHistorico(nome, tipo){
-  historico.unshift({nome, tipo, hora: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
+function addHistorico(nome, tipo, funcao, ministerio){
+  historico.unshift({nome, tipo, funcao:funcao||'', ministerio:ministerio||'', hora: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
   document.getElementById('historico-card').style.display='';
-  document.getElementById('historico-lista').innerHTML = historico.map(h=>`
-    <div class="historico-item">
-      <span>${h.nome}</span>
+  document.getElementById('historico-lista').innerHTML = historico.map(h=>{
+    const sub = [h.funcao, h.ministerio].filter(Boolean).join(' · ');
+    return `<div class="historico-item">
+      <div>
+        <div>${h.nome}</div>
+        ${sub?`<div style="font-size:.7rem;color:var(--muted)">${sub}</div>`:''}
+      </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:.72rem;color:var(--muted)">${h.hora}</span>
         <span class="badge ${h.tipo==='ok'?'badge-ok':'badge-dup'}">${h.tipo==='ok'?'✅ Confirmado':'⚠️ Duplicado'}</span>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 </script>
 </body>

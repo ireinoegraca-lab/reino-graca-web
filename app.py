@@ -182,12 +182,19 @@ def presenca_qr():
     m = Membro.query.get(membro_id)
     if not m:
         return jsonify({'ok':False,'msg':'Membro não encontrado'}), 404
+    role_labels = {'membro':'Membro','lider':'Líder','secretaria':'Secretaria',
+                   'tesoureiro':'Tesoureiro','pastor':'Pastor','admin':'Administrador'}
+    # busca usuario vinculado ao membro pelo email ou nome
+    u_vinc = Usuario.query.filter_by(nome=m.nome).first()
+    funcao = role_labels.get(u_vinc.role, u_vinc.role or 'Membro') if u_vinc else 'Membro'
+    min_nome = (m.ministerio.nome if m.ministerio else '') or \
+               (u_vinc.ministerio.nome if u_vinc and u_vinc.ministerio else '')
     existente = Presenca.query.filter_by(evento_id=evento_id, membro_id=membro_id).first()
     if existente:
-        return jsonify({'ok':True,'duplicado':True,'nome':m.nome})
+        return jsonify({'ok':True,'duplicado':True,'nome':m.nome,'funcao':funcao,'ministerio':min_nome})
     db.session.add(Presenca(evento_id=evento_id, membro_id=membro_id, presente=True))
     db.session.commit()
-    return jsonify({'ok':True,'duplicado':False,'nome':m.nome})
+    return jsonify({'ok':True,'duplicado':False,'nome':m.nome,'funcao':funcao,'ministerio':min_nome})
 
 # ── AUTH ──────────────────────────────────────────────────────────
 @app.route('/api/login', methods=['POST'])

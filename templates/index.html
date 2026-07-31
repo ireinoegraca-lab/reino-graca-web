@@ -790,7 +790,7 @@ input,select,textarea,button{font-family:inherit}
   </div><!-- /app-body -->
 
   <!-- PÍLULA: traz o menu de volta -->
-  <div id="nav-pill" onclick="document.getElementById('bottom-nav').style.transform='';this.style.display='none'" style="display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);background:var(--brand);color:#fff;font-size:.72rem;font-weight:700;padding:6px 22px;border-radius:12px 12px 0 0;z-index:102;cursor:pointer;letter-spacing:.05em">▲ Menu</div>
+  <div id="nav-pill" onclick="document.getElementById('bottom-nav').style.setProperty('display','flex','important');this.style.display='none'" style="display:none;position:fixed;bottom:0;left:50%;transform:translateX(-50%);background:var(--brand);color:#fff;font-size:.72rem;font-weight:700;padding:6px 22px;border-radius:12px 12px 0 0;z-index:102;cursor:pointer;letter-spacing:.05em">▲ Menu</div>
 
   <!-- BOTTOM NAV -->
   <div class="bottom-nav" id="bottom-nav">
@@ -1451,11 +1451,11 @@ function navTo(page){
   const bnav=document.getElementById('bottom-nav');
   const pill=document.getElementById('nav-pill');
   if(bnav){
-    bnav.style.transform='';
+    bnav.style.setProperty('display','flex','important');
     if(pill) pill.style.display='none';
     clearTimeout(window._navHide);
     if(page!=='dashboard') window._navHide=setTimeout(()=>{
-      bnav.style.transform='translateY(100%)';
+      bnav.style.setProperty('display','none','important');
       if(pill) pill.style.display='block';
     },800);
   }

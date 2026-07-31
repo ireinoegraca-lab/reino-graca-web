@@ -252,19 +252,27 @@ def carteirinha_me():
         primeiro = u.nome.split()[0]
         m = Membro.query.filter(Membro.nome.ilike(f'{primeiro}%')).first()
     cfg = {r.chave: r.valor for r in Config.query.all()}
+    role_labels = {'membro':'Membro','lider':'Líder','secretaria':'Secretaria',
+                   'tesoureiro':'Tesoureiro','pastor':'Pastor','admin':'Administrador'}
+    funcao = role_labels.get(u.role, u.role or 'Membro')
+    min_nome = (m.ministerio.nome if m and m.ministerio else '') or \
+               (u.ministerio.nome if u.ministerio else '')
     if m:
         return jsonify({'ok': True, 'membro': {
             'id': m.id, 'nome': m.nome, 'foto': m.foto or '',
             'status': m.status or 'Ativo',
             'profissao': m.profissao or '',
-            'ministerio_nome': m.ministerio.nome if m.ministerio else '',
+            'ministerio_nome': min_nome,
+            'funcao_igreja': funcao,
             'nasc': m.nasc or '', 'bairro': m.bairro or ''
         }, 'config': cfg})
     # fallback: usa dados do usuário
     return jsonify({'ok': True, 'membro': {
         'id': u.id, 'nome': u.nome, 'foto': '',
         'status': 'Membro', 'profissao': '',
-        'ministerio_nome': '', 'nasc': '', 'bairro': ''
+        'ministerio_nome': min_nome,
+        'funcao_igreja': funcao,
+        'nasc': '', 'bairro': ''
     }, 'config': cfg})
 
 @app.route('/api/meu-perfil', methods=['PUT'])

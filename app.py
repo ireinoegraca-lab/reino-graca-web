@@ -73,7 +73,10 @@ def serialize_ministerio(c):
 def serialize_evento(e):
     return {'id':e.id,'titulo':e.titulo,'data':e.data,'hora':e.hora or '','local':e.local or '','tipo':e.tipo or 'culto','descricao':e.descricao or ''}
 def serialize_musica(m):
-    return {'id':m.id,'titulo':m.titulo,'artista':m.artista or '','tom':m.tom or '','cifra':m.cifra or ''}
+    return {'id':m.id,'titulo':m.titulo,'artista':m.artista or '','tom':m.tom or '',
+            'cifra':m.cifra or '','letra':m.letra or '','bpm':m.bpm or 0,
+            'link_youtube':m.link_youtube or '','categoria':m.categoria or '',
+            'ministerio_id':m.ministerio_id,'ministerio_nome':m.ministerio.nome if m.ministerio else ''}
 def serialize_setlist(s):
     itens = sorted(s.itens, key=lambda x: x.ordem)
     return {'id':s.id,'titulo':s.titulo,'data':s.data or '','hora':s.hora or '',
@@ -440,7 +443,9 @@ def get_musicas():
 @login_required
 def add_musica():
     d = request.json
-    m = Musica(titulo=d['titulo'],artista=d.get('artista'),tom=d.get('tom'),cifra=d.get('cifra'))
+    m = Musica(titulo=d['titulo'],artista=d.get('artista'),tom=d.get('tom'),cifra=d.get('cifra'),
+               letra=d.get('letra'),bpm=d.get('bpm') or None,link_youtube=d.get('link_youtube'),
+               categoria=d.get('categoria'),ministerio_id=d.get('ministerio_id') or None)
     db.session.add(m); db.session.commit()
     return jsonify({'ok':True,'musica':serialize_musica(m)})
 
@@ -448,8 +453,10 @@ def add_musica():
 @login_required
 def update_musica(mid):
     m = Musica.query.get_or_404(mid); d = request.json
-    for k in ['titulo','artista','tom','cifra']:
-        if k in d: setattr(m, k, d[k])
+    for k in ['titulo','artista','tom','cifra','letra','link_youtube','categoria']:
+        if k in d: setattr(m, k, d[k] or None)
+    if 'bpm' in d: m.bpm = int(d['bpm']) if d['bpm'] else None
+    if 'ministerio_id' in d: m.ministerio_id = d['ministerio_id'] or None
     db.session.commit()
     return jsonify({'ok':True,'musica':serialize_musica(m)})
 
@@ -1111,6 +1118,11 @@ def migrate_columns():
         add_col('campanhas',  'dia_vencimento',       'INTEGER')
         add_col('usuarios',   'ultima_confirmacao',   'VARCHAR(10)')
         add_col('comunicados','ministerio_id', 'INTEGER REFERENCES ministerios(id)')
+        add_col('musicas','letra',         'TEXT')
+        add_col('musicas','bpm',           'INTEGER')
+        add_col('musicas','link_youtube',  'VARCHAR(300)')
+        add_col('musicas','categoria',     'VARCHAR(50)')
+        add_col('musicas','ministerio_id', 'INTEGER REFERENCES ministerios(id)')
         conn.close()
 
 def init_db():

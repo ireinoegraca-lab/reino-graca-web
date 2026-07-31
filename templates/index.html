@@ -621,25 +621,41 @@ input,select,textarea,button{font-family:inherit}
     <!-- LOUVOR -->
     <div class="page" id="page-louvor">
       <div class="page-header">
-        <div class="page-title">Louvor</div>
-        <div class="page-sub">Repertório, cifras e setlists</div>
+        <div><div class="page-title">Louvor</div><div class="page-sub">Repertório, cifras e escalas</div></div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:16px">
-        <button class="btn btn-sm" id="tab-rep" onclick="louvorTab('rep')" style="background:var(--brand);color:#fff">🎵 Repertório</button>
-        <button class="btn btn-sm btn-outline" id="tab-set" onclick="louvorTab('set')">📋 Setlists</button>
+      <!-- Abas -->
+      <div style="display:flex;gap:4px;margin-bottom:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px">
+        <button class="btn btn-primary btn-sm" id="tab-rep" onclick="louvorTab('rep')" style="flex:1;border-radius:9px">🎵 Músicas</button>
+        <button class="btn btn-outline btn-sm" id="tab-set" onclick="louvorTab('set')" style="flex:1;border-radius:9px">📋 Setlists</button>
+        <button class="btn btn-outline btn-sm" id="tab-esclouvor" onclick="louvorTab('esclouvor')" style="flex:1;border-radius:9px">🎸 Escala</button>
       </div>
+
+      <!-- REPERTÓRIO -->
       <div id="louvor-rep-panel">
         <div class="toolbar">
-          <input class="search-box" id="musicas-search" placeholder="🔍 Buscar música..." oninput="renderMusicas()">
-          <button class="btn btn-primary" onclick="openModalMusica()">+ Música</button>
+          <input class="search-box" id="musicas-search" placeholder="🔍 Buscar música..." oninput="renderMusicas()" style="flex:1">
+          <select id="musicas-fil-min" class="form-control" style="max-width:160px;font-size:.8rem" onchange="renderMusicas()">
+            <option value="">Todos ministérios</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="openModalMusica()">+ Música</button>
         </div>
         <div id="musicas-list"></div>
       </div>
+
+      <!-- SETLISTS -->
       <div id="louvor-set-panel" style="display:none">
         <div class="toolbar">
-          <button class="btn btn-primary" onclick="openModalSetlist()">+ Setlist</button>
+          <button class="btn btn-primary btn-sm" onclick="openModalSetlist()">+ Setlist</button>
         </div>
         <div id="setlists-list"></div>
+      </div>
+
+      <!-- ESCALA DE LOUVOR -->
+      <div id="louvor-esclouvor-panel" style="display:none">
+        <div class="toolbar">
+          <button class="btn btn-primary btn-sm admin-only" onclick="openModalEscLouvor()">+ Nova Escala</button>
+        </div>
+        <div id="escalouvor-list"></div>
       </div>
     </div>
 
@@ -1019,22 +1035,102 @@ input,select,textarea,button{font-family:inherit}
           <input class="form-input" id="mus-artista" placeholder="Artista/Banda">
         </div>
         <div class="form-group">
+          <label class="form-label">Categoria</label>
+          <select class="form-input" id="mus-categoria">
+            <option value="">—</option>
+            <option>Louvor</option><option>Adoração</option><option>Comunhão</option>
+            <option>Ofertório</option><option>Pré-culto</option><option>Infantil</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
           <label class="form-label">Tom</label>
           <select class="form-input" id="mus-tom">
             <option value="">—</option>
-            <option>C</option><option>C#</option><option>D</option><option>D#</option>
-            <option>E</option><option>F</option><option>F#</option><option>G</option>
-            <option>G#</option><option>A</option><option>A#</option><option>B</option>
+            <option>C</option><option>C#</option><option>Db</option><option>D</option><option>D#</option><option>Eb</option>
+            <option>E</option><option>F</option><option>F#</option><option>Gb</option><option>G</option>
+            <option>G#</option><option>Ab</option><option>A</option><option>A#</option><option>Bb</option><option>B</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">BPM</label>
+          <input class="form-input" id="mus-bpm" type="number" min="40" max="240" placeholder="Ex: 76">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ministério</label>
+          <select class="form-input" id="mus-ministerio">
+            <option value="">Geral</option>
           </select>
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Cifra <span style="color:var(--muted);font-size:.75rem">(use [G] para acordes)</span></label>
-        <textarea class="form-input" id="mus-cifra" rows="6" placeholder="[G]Primeira linha...&#10;[Em]Segunda linha..."></textarea>
+        <label class="form-label">🎬 Link YouTube</label>
+        <input class="form-input" id="mus-youtube" placeholder="https://www.youtube.com/watch?v=...">
+      </div>
+      <!-- Abas Cifra / Letra -->
+      <div style="display:flex;gap:4px;margin-bottom:8px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px">
+        <button class="btn btn-primary btn-sm" id="mus-tab-cifra" onclick="musTabs('cifra')" style="flex:1;border-radius:8px;font-size:.8rem">🎸 Cifra</button>
+        <button class="btn btn-outline btn-sm" id="mus-tab-letra" onclick="musTabs('letra')" style="flex:1;border-radius:8px;font-size:.8rem">📝 Letra</button>
+      </div>
+      <div id="mus-panel-cifra">
+        <div class="form-group">
+          <label class="form-label" style="font-size:.75rem;color:var(--muted)">Use [G] [Am] para acordes — ex: [G]Trono eterno</label>
+          <textarea class="form-input" id="mus-cifra" rows="7" placeholder="[G]Trono eterno [D]és Senhor&#10;[Em]Tua glória [C]resplandece..."></textarea>
+        </div>
+      </div>
+      <div id="mus-panel-letra" style="display:none">
+        <div class="form-group">
+          <textarea class="form-input" id="mus-letra" rows="7" placeholder="Letra completa da música..."></textarea>
+        </div>
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button class="btn btn-outline" onclick="closeModal('modal-musica')">Cancelar</button>
         <button class="btn btn-primary" onclick="salvarMusica()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Escala de Louvor -->
+<div class="modal-overlay" id="modal-esclouvor" onclick="if(event.target===this)closeModal('modal-esclouvor')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-esclouvor-title">Nova Escala de Louvor</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-esclouvor')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="esclouvor-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Culto / Evento *</label>
+          <input class="form-input" id="esclouvor-titulo" placeholder="Ex: Culto de Domingo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data *</label>
+          <input class="form-input" type="date" id="esclouvor-data">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Horário</label>
+          <input class="form-input" type="time" id="esclouvor-hora">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Observações</label>
+          <input class="form-input" id="esclouvor-obs" placeholder="Tom geral, tema...">
+        </div>
+      </div>
+      <div style="font-weight:700;font-size:.85rem;margin:14px 0 8px">Músicos / Cantores</div>
+      <div id="esclouvor-membros-lista" style="margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <select class="form-control" id="esclouvor-add-membro" style="flex:2"></select>
+        <input class="form-control" id="esclouvor-add-funcao" placeholder="Função (Violão, Voz...)" style="flex:2">
+        <button class="btn btn-primary btn-sm" onclick="addMembroEscLouvor()">+</button>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeModal('modal-esclouvor')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarEscLouvor()">Salvar</button>
       </div>
     </div>
   </div>
@@ -1805,11 +1901,22 @@ async function delEvento(id){
 
 // ── LOUVOR ────────────────────────────────────────────────────────
 function louvorTab(t){
-  document.getElementById('louvor-rep-panel').style.display=t==='rep'?'':'none';
-  document.getElementById('louvor-set-panel').style.display=t==='set'?'':'none';
-  document.getElementById('tab-rep').style.cssText=t==='rep'?'background:var(--brand);color:#fff':'';
-  document.getElementById('tab-set').style.cssText=t==='set'?'background:var(--brand);color:#fff':'';
-  if(t==='set')renderSetlists();
+  ['rep','set','esclouvor'].forEach(x=>{
+    document.getElementById('louvor-'+x+'-panel').style.display=t===x?'':'none';
+    const btn=document.getElementById('tab-'+x);
+    if(btn){btn.className='btn btn-sm '+(t===x?'btn-primary':'btn-outline');btn.style.flex='1';btn.style.borderRadius='9px';}
+  });
+  if(t==='set') renderSetlists();
+  if(t==='esclouvor') renderEscLouvor();
+}
+
+function musTabs(t){
+  document.getElementById('mus-panel-cifra').style.display=t==='cifra'?'':'none';
+  document.getElementById('mus-panel-letra').style.display=t==='letra'?'':'none';
+  document.getElementById('mus-tab-cifra').className='btn btn-sm '+(t==='cifra'?'btn-primary':'btn-outline');
+  document.getElementById('mus-tab-cifra').style.flex='1';document.getElementById('mus-tab-cifra').style.borderRadius='8px';
+  document.getElementById('mus-tab-letra').className='btn btn-sm '+(t==='letra'?'btn-primary':'btn-outline');
+  document.getElementById('mus-tab-letra').style.flex='1';document.getElementById('mus-tab-letra').style.borderRadius='8px';
 }
 
 function transpAcorde(a,n){const m=a.match(/^([A-G][#b]?)(.*)/);if(!m)return a;const en={'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#'};const b=en[m[1]]||m[1];const i=TONS.indexOf(b);if(i<0)return a;return TONS[((i+n)%12+12)%12]+m[2];}
@@ -1818,23 +1925,66 @@ function cifraHtml(txt){return txt.replace(/\[([^\]]+)\]/g,'<span class="acorde"
 
 function renderMusicas(){
   const q=(document.getElementById('musicas-search').value||'').toLowerCase();
-  const list=DATA.musicas.filter(m=>!q||m.titulo.toLowerCase().includes(q)||( m.artista||'').toLowerCase().includes(q));
+  const filMin=document.getElementById('musicas-fil-min').value;
+  // popula filtro de ministérios
+  const selMin=document.getElementById('musicas-fil-min');
+  const prevMin=selMin.value;
+  selMin.innerHTML='<option value="">Todos ministérios</option>'+(DATA.ministerios||[]).map(mn=>`<option value="${mn.id}">${mn.nome}</option>`).join('');
+  selMin.value=prevMin;
+  const list=DATA.musicas.filter(m=>{
+    if(q&&!m.titulo.toLowerCase().includes(q)&&!(m.artista||'').toLowerCase().includes(q))return false;
+    if(filMin&&String(m.ministerio_id)!==filMin)return false;
+    return true;
+  });
   const el=document.getElementById('musicas-list');
   if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">🎵</div><p>Nenhuma música</p></div>';return;}
   _semitones={};
   el.innerHTML=list.map((m,i)=>`<div class="musica-card" id="mc-${i}">
     <div class="musica-head" onclick="toggleMus(${i})">
       <div class="musica-icon">🎵</div>
-      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.88rem">${m.titulo}</div><div style="font-size:.74rem;color:var(--muted)">${m.artista||'—'}</div></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:.88rem">${m.titulo}</div>
+        <div style="font-size:.74rem;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;margin-top:2px">
+          ${m.artista?`<span>${m.artista}</span>`:''}
+          ${m.categoria?`<span style="color:var(--brand2)">• ${m.categoria}</span>`:''}
+          ${m.bpm?`<span>• ${m.bpm} BPM</span>`:''}
+          ${m.ministerio_nome?`<span>• ${m.ministerio_nome}</span>`:''}
+        </div>
+      </div>
       <div style="display:flex;align-items:center;gap:6px">
         <span id="tom-badge-${i}" style="font-size:.75rem;font-weight:700;color:var(--brand2);background:rgba(225,29,42,.1);padding:2px 8px;border-radius:6px">${m.tom||'—'}</span>
+        ${m.link_youtube?`<a href="${m.link_youtube}" target="_blank" onclick="event.stopPropagation()" style="font-size:1.1rem;text-decoration:none" title="Ver no YouTube">▶️</a>`:''}
         ${canManage(null)||isAdmin()?`<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModalMusica(${m.id})">✏️</button><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();delMusica(${m.id})">🗑️</button>`:''}
       </div>
     </div>
     <div class="musica-body">
-      ${m.cifra?`<div class="ton-ctrl"><span style="font-size:.8rem;color:var(--muted)">Tom:</span><button class="ton-btn" onclick="transporMus(${i},-1)">♭−</button><span class="ton-label" id="ton-${i}">${m.tom||'—'}</span><button class="ton-btn" onclick="transporMus(${i},+1)">♯+</button><button class="ton-btn" onclick="resetMus(${i})">↺</button></div><div class="cifra-box" id="cifra-${i}">${cifraHtml(m.cifra)}</div>`:'<div style="color:var(--muted);font-size:.85rem">Cifra não cadastrada</div>'}
+      ${m.cifra||m.letra?`
+      <div style="display:flex;gap:4px;margin-bottom:10px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px">
+        ${m.cifra?`<button class="btn btn-primary btn-sm" id="view-tab-cifra-${i}" onclick="viewMusTab(${i},'cifra')" style="flex:1;border-radius:8px;font-size:.78rem">🎸 Cifra</button>`:''}
+        ${m.letra?`<button class="${m.cifra?'btn btn-outline':'btn btn-primary'} btn-sm" id="view-tab-letra-${i}" onclick="viewMusTab(${i},'letra')" style="flex:1;border-radius:8px;font-size:.78rem">📝 Letra</button>`:''}
+      </div>
+      `:''}
+      ${m.cifra?`
+      <div id="view-panel-cifra-${i}">
+        <div class="ton-ctrl"><span style="font-size:.8rem;color:var(--muted)">Tom:</span><button class="ton-btn" onclick="transporMus(${i},-1)">♭−</button><span class="ton-label" id="ton-${i}">${m.tom||'—'}</span><button class="ton-btn" onclick="transporMus(${i},+1)">♯+</button><button class="ton-btn" onclick="resetMus(${i})">↺</button></div>
+        <div class="cifra-box" id="cifra-${i}">${cifraHtml(m.cifra)}</div>
+      </div>`:''}
+      ${m.letra?`<div id="view-panel-letra-${i}" style="display:${m.cifra?'none':'block'}"><pre style="font-size:.85rem;line-height:1.8;white-space:pre-wrap;color:var(--txt);font-family:inherit">${m.letra}</pre></div>`:''}
+      ${!m.cifra&&!m.letra?'<div style="color:var(--muted);font-size:.85rem">Cifra e letra não cadastradas</div>':''}
+      ${m.link_youtube?`<div style="margin-top:14px"><a href="${m.link_youtube}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#ff0000;color:#fff;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:.82rem;font-weight:700">▶️ Assistir no YouTube</a></div>`:''}
     </div>
   </div>`).join('');
+}
+
+function viewMusTab(i,tab){
+  const cifraEl=document.getElementById('view-panel-cifra-'+i);
+  const letraEl=document.getElementById('view-panel-letra-'+i);
+  const btnC=document.getElementById('view-tab-cifra-'+i);
+  const btnL=document.getElementById('view-tab-letra-'+i);
+  if(cifraEl) cifraEl.style.display=tab==='cifra'?'':'none';
+  if(letraEl) letraEl.style.display=tab==='letra'?'':'none';
+  if(btnC){btnC.className='btn btn-sm '+(tab==='cifra'?'btn-primary':'btn-outline');btnC.style.flex='1';btnC.style.borderRadius='8px';}
+  if(btnL){btnL.className='btn btn-sm '+(tab==='letra'?'btn-primary':'btn-outline');btnL.style.flex='1';btnL.style.borderRadius='8px';}
 }
 
 function toggleMus(i){document.getElementById('mc-'+i).classList.toggle('open');}
@@ -1851,8 +2001,25 @@ function resetMus(i){_semitones[i]=0;const m=DATA.musicas[i];document.getElement
 function openModalMusica(id){
   document.getElementById('modal-mus-title').textContent=id?'Editar Música':'Nova Música';
   document.getElementById('mus-id').value=id||'';
-  if(id){const m=DATA.musicas.find(x=>x.id===id)||{};document.getElementById('mus-titulo').value=m.titulo||'';document.getElementById('mus-artista').value=m.artista||'';document.getElementById('mus-tom').value=m.tom||'';document.getElementById('mus-cifra').value=m.cifra||'';}
-  else{['mus-titulo','mus-artista','mus-cifra'].forEach(i=>document.getElementById(i).value='');document.getElementById('mus-tom').value='';}
+  const selMin=document.getElementById('mus-ministerio');
+  selMin.innerHTML='<option value="">Geral</option>'+(DATA.ministerios||[]).map(mn=>`<option value="${mn.id}">${mn.nome}</option>`).join('');
+  musTabs('cifra');
+  if(id){
+    const m=DATA.musicas.find(x=>x.id===id)||{};
+    document.getElementById('mus-titulo').value=m.titulo||'';
+    document.getElementById('mus-artista').value=m.artista||'';
+    document.getElementById('mus-tom').value=m.tom||'';
+    document.getElementById('mus-bpm').value=m.bpm||'';
+    document.getElementById('mus-cifra').value=m.cifra||'';
+    document.getElementById('mus-letra').value=m.letra||'';
+    document.getElementById('mus-youtube').value=m.link_youtube||'';
+    document.getElementById('mus-categoria').value=m.categoria||'';
+    selMin.value=m.ministerio_id||'';
+  } else {
+    ['mus-titulo','mus-artista','mus-cifra','mus-letra','mus-youtube','mus-bpm'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('mus-tom').value='';
+    document.getElementById('mus-categoria').value='';
+  }
   openModal('modal-musica');
 }
 
@@ -1860,7 +2027,15 @@ async function salvarMusica(){
   const id=document.getElementById('mus-id').value;
   const titulo=document.getElementById('mus-titulo').value.trim();
   if(!titulo){toast('Informe o título','error');return;}
-  const body={titulo,artista:document.getElementById('mus-artista').value,tom:document.getElementById('mus-tom').value,cifra:document.getElementById('mus-cifra').value};
+  const body={titulo,
+    artista:document.getElementById('mus-artista').value,
+    tom:document.getElementById('mus-tom').value,
+    bpm:document.getElementById('mus-bpm').value||null,
+    cifra:document.getElementById('mus-cifra').value,
+    letra:document.getElementById('mus-letra').value,
+    link_youtube:document.getElementById('mus-youtube').value,
+    categoria:document.getElementById('mus-categoria').value,
+    ministerio_id:document.getElementById('mus-ministerio').value||null};
   const res=await api(id?`/api/musicas/${id}`:'/api/musicas',{method:id?'PUT':'POST',body:JSON.stringify(body)});
   if(!res.ok){toast('Erro','error');return;}
   if(id){const idx=DATA.musicas.findIndex(x=>x.id==id);if(idx>=0)DATA.musicas[idx]=res.musica;}
@@ -1872,6 +2047,96 @@ async function delMusica(id){
   if(!confirm('Excluir?'))return;
   await api(`/api/musicas/${id}`,{method:'DELETE'});
   DATA.musicas=DATA.musicas.filter(m=>m.id!==id);renderMusicas();toast('Excluída','success');
+}
+
+// ── ESCALA DE LOUVOR ──────────────────────────────────────────────
+let _escLouvorItens=[];
+
+function renderEscLouvor(){
+  const el=document.getElementById('escalouvor-list');
+  if(!el)return;
+  api('/api/escalas').then(res=>{
+    const escalas=(Array.isArray(res)?res:[]).slice().sort((a,b)=>b.data.localeCompare(a.data));
+    if(!escalas.length){el.innerHTML='<div class="empty"><div class="empty-icon">🎸</div><p>Nenhuma escala cadastrada</p></div>';return;}
+    el.innerHTML=escalas.map(e=>`
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+          <div>
+            <div style="font-weight:700;font-size:.95rem">${e.titulo}</div>
+            <div style="font-size:.78rem;color:var(--muted);margin-top:2px">📅 ${fmtDataBr(e.data)}${e.hora?' · '+e.hora:''}</div>
+            ${e.descricao?`<div style="font-size:.78rem;color:var(--muted);margin-top:2px">💬 ${e.descricao}</div>`:''}
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm admin-only" onclick="openModalEscLouvor(${e.id})">✏️</button>
+            <button class="btn btn-ghost btn-sm admin-only" onclick="delEscLouvor(${e.id})">🗑️</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
+          ${(e.itens||[]).map(it=>`
+            <div style="background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px">
+              <div style="font-size:.68rem;font-weight:700;color:var(--brand2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${it.funcao}</div>
+              <div style="font-size:.85rem;font-weight:600">${it.membro||'—'}</div>
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+    applyRole();
+  });
+}
+
+function openModalEscLouvor(id){
+  _escLouvorItens=[];
+  document.getElementById('modal-esclouvor-title').textContent=id?'Editar Escala':'Nova Escala de Louvor';
+  document.getElementById('esclouvor-id').value=id||'';
+  document.getElementById('esclouvor-titulo').value='';
+  document.getElementById('esclouvor-data').value=new Date().toISOString().split('T')[0];
+  document.getElementById('esclouvor-hora').value='';
+  document.getElementById('esclouvor-obs').value='';
+  const sel=document.getElementById('esclouvor-add-membro');
+  sel.innerHTML=(DATA.membros||[]).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  renderEscLouvorItens();
+  openModal('modal-esclouvor');
+}
+
+function renderEscLouvorItens(){
+  document.getElementById('esclouvor-membros-lista').innerHTML=_escLouvorItens.length
+    ?_escLouvorItens.map((it,i)=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)">
+          <div style="flex:1">
+            <span style="font-size:.7rem;font-weight:700;color:var(--brand2);text-transform:uppercase">${it.funcao}</span>
+            <span style="font-size:.85rem;margin-left:8px">${it.nome}</span>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="_escLouvorItens.splice(${i},1);renderEscLouvorItens()">✕</button>
+        </div>`).join('')
+    :'<div style="font-size:.82rem;color:var(--muted);padding:8px 0">Nenhum músico adicionado</div>';
+}
+
+function addMembroEscLouvor(){
+  const sel=document.getElementById('esclouvor-add-membro');
+  const funcao=document.getElementById('esclouvor-add-funcao').value.trim();
+  if(!sel.value||!funcao){toast('Selecione membro e função','error');return;}
+  const nome=sel.options[sel.selectedIndex].text;
+  _escLouvorItens.push({membro_id:parseInt(sel.value),nome,funcao});
+  document.getElementById('esclouvor-add-funcao').value='';
+  renderEscLouvorItens();
+}
+
+async function salvarEscLouvor(){
+  const id=document.getElementById('esclouvor-id').value;
+  const titulo=document.getElementById('esclouvor-titulo').value.trim();
+  const data=document.getElementById('esclouvor-data').value;
+  if(!titulo||!data){toast('Preencha título e data','error');return;}
+  const body={titulo,data,hora:document.getElementById('esclouvor-hora').value,
+    descricao:document.getElementById('esclouvor-obs').value,
+    itens:_escLouvorItens.map(it=>({membro_id:it.membro_id,funcao:it.funcao}))};
+  const res=await api(id?`/api/escalas/${id}`:'/api/escalas',{method:id?'PUT':'POST',body:JSON.stringify(body)});
+  if(!res.ok){toast('Erro','error');return;}
+  closeModal('modal-esclouvor');renderEscLouvor();toast('Escala salva!','success');
+}
+
+async function delEscLouvor(id){
+  if(!confirm('Excluir escala?'))return;
+  await api(`/api/escalas/${id}`,{method:'DELETE'});
+  renderEscLouvor();toast('Excluída','success');
 }
 
 function renderSetlists(){

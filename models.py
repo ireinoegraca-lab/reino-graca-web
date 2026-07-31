@@ -89,11 +89,17 @@ class Evento(db.Model):
 
 class Musica(db.Model):
     __tablename__ = 'musicas'
-    id         = db.Column(db.Integer, primary_key=True)
-    titulo     = db.Column(db.String(120), nullable=False)
-    artista    = db.Column(db.String(100))
-    tom        = db.Column(db.String(5))
-    cifra      = db.Column(db.Text)
+    id            = db.Column(db.Integer, primary_key=True)
+    titulo        = db.Column(db.String(120), nullable=False)
+    artista       = db.Column(db.String(100))
+    tom           = db.Column(db.String(5))
+    cifra         = db.Column(db.Text)
+    letra         = db.Column(db.Text)
+    bpm           = db.Column(db.Integer)
+    link_youtube  = db.Column(db.String(300))
+    categoria     = db.Column(db.String(50))
+    ministerio_id = db.Column(db.Integer, db.ForeignKey('ministerios.id'), nullable=True)
+    ministerio    = db.relationship('Ministerio', foreign_keys=[ministerio_id])
 
 class Setlist(db.Model):
     __tablename__ = 'setlists'

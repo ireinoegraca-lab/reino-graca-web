@@ -1151,9 +1151,8 @@ def init_db():
             if not p:
                 db.session.add(Perfil(**pd))
             else:
-                # atualiza permissões de perfis builtin se nova coluna foi adicionada
-                if p.p_escanear is None:
-                    p.p_escanear = pd.get('p_escanear', False)
+                # sempre sincroniza p_escanear nos perfis builtin
+                p.p_escanear = pd.get('p_escanear', False)
         db.session.commit()
         # Seed config padrão
         configs_padrao = [
@@ -1309,6 +1308,18 @@ def get_pix_info():
     chave = Config.query.filter_by(chave='pix_chave').first()
     nome  = Config.query.filter_by(chave='nome_igreja').first()
     return jsonify({'chave': chave.valor if chave else '', 'nome': nome.valor if nome else 'Igreja'})
+
+# ── FIX PERMISSÕES ────────────────────────────────────────────────
+@app.route('/api/admin/fix-perms')
+@login_required
+def fix_perms():
+    if not is_admin(): return jsonify({'ok':False}),403
+    for pd in PERFIS_PADRAO:
+        p = Perfil.query.filter_by(nome=pd['nome']).first()
+        if p:
+            p.p_escanear = pd.get('p_escanear', False)
+    db.session.commit()
+    return jsonify({'ok':True,'msg':'Permissões dos perfis builtin atualizadas'})
 
 # ── BACKUP / EXPORT ───────────────────────────────────────────────
 @app.route('/api/admin/export-db')

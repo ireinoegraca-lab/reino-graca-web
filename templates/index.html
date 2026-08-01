@@ -401,37 +401,43 @@ input,select,textarea,button{font-family:inherit}
 
     <!-- PRESENÇA -->
     <div class="page" id="page-presenca">
-      <div class="page-header">
-        <div><div class="page-title">Controle de Presença</div><div class="page-sub">Lista de presença por culto/evento</div></div>
-        <button class="btn btn-primary btn-sm admin-only" onclick="abrirNovoEvento()" style="white-space:nowrap">+ Novo Evento</button>
-      </div>
-
-      <!-- Mini-modal: novo evento de presença -->
-      <div id="novo-evento-box" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:16px">
-        <div style="font-weight:700;margin-bottom:14px">📅 Novo Culto / Evento</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-          <div><label class="form-label">Título</label><input class="form-control" id="nev-titulo" placeholder="Ex: Culto de Domingo"></div>
-          <div><label class="form-label">Data</label><input class="form-control" type="date" id="nev-data"></div>
-          <div><label class="form-label">Horário</label><input class="form-control" type="time" id="nev-hora"></div>
-          <div><label class="form-label">Local</label><input class="form-control" id="nev-local" placeholder="Templo principal"></div>
+      <!-- TELA PRINCIPAL: lista de eventos -->
+      <div id="presenca-home">
+        <div class="page-header">
+          <div><div class="page-title">Controle de Presença</div><div class="page-sub">Selecione um evento</div></div>
+          <button class="btn btn-primary btn-sm admin-only" onclick="abrirNovoEvento()" style="white-space:nowrap">+ Novo Evento</button>
         </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end">
-          <button class="btn btn-outline btn-sm" onclick="document.getElementById('novo-evento-box').style.display='none'">Cancelar</button>
-          <button class="btn btn-primary btn-sm" onclick="salvarNovoEvento()">Criar e Abrir Presença</button>
+
+        <!-- Mini-modal: novo evento -->
+        <div id="novo-evento-box" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:16px">
+          <div style="font-weight:700;margin-bottom:14px">📅 Novo Culto / Evento</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div><label class="form-label">Título</label><input class="form-control" id="nev-titulo" placeholder="Ex: Culto de Domingo"></div>
+            <div><label class="form-label">Data</label><input class="form-control" type="date" id="nev-data"></div>
+            <div><label class="form-label">Horário</label><input class="form-control" type="time" id="nev-hora"></div>
+            <div><label class="form-label">Local</label><input class="form-control" id="nev-local" placeholder="Templo principal"></div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('novo-evento-box').style.display='none'">Cancelar</button>
+            <button class="btn btn-primary btn-sm" onclick="salvarNovoEvento()">Criar e Abrir Presença</button>
+          </div>
         </div>
+
+        <input class="search-box" id="presenca-eventos-busca" placeholder="🔍 Buscar evento..." oninput="renderPresencaHome()" style="margin-bottom:12px">
+        <div id="presenca-eventos-lista"></div>
       </div>
 
-      <!-- Seletor de evento + abas -->
-      <div class="card" style="margin-bottom:16px">
-        <label style="font-size:.85rem;color:var(--text2)">Selecione o evento
-          <select id="presenca-evento-sel" class="form-control" style="margin-top:6px" onchange="loadPresenca()">
-            <option value="">— escolha um evento —</option>
-          </select>
-        </label>
-      </div>
+      <!-- TELA DE DETALHE: presença do evento selecionado -->
+      <div id="presenca-detalhe" style="display:none">
+        <div class="page-header" style="margin-bottom:12px">
+          <button class="btn btn-outline btn-sm" onclick="voltarPresencaHome()" style="display:flex;align-items:center;gap:6px">← Voltar</button>
+          <div style="text-align:right">
+            <div id="presenca-detalhe-titulo" style="font-weight:700;font-size:1rem"></div>
+            <div id="presenca-detalhe-sub" style="font-size:.78rem;color:var(--text2)"></div>
+          </div>
+        </div>
 
-      <!-- Abas: Marcar / Consultar -->
-      <div id="presenca-area" style="display:none">
+        <!-- Abas: Marcar / Quem Foi -->
         <div style="display:flex;gap:4px;margin-bottom:16px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px">
           <button id="tab-marcar" class="btn btn-primary btn-sm" style="flex:1;border-radius:9px" onclick="switchPresencaTab('marcar')">✏️ Marcar Presença</button>
           <button id="tab-consultar" class="btn btn-outline btn-sm" style="flex:1;border-radius:9px" onclick="switchPresencaTab('consultar')">👁️ Quem Foi</button>
@@ -451,11 +457,14 @@ input,select,textarea,button{font-family:inherit}
           <div id="presenca-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px"></div>
         </div>
 
-        <!-- ABA CONSULTAR -->
+        <!-- ABA QUEM FOI -->
         <div id="presenca-tab-consultar" style="display:none">
           <div id="presenca-consulta-content"></div>
         </div>
       </div>
+
+      <!-- input oculto para compatibilidade com loadPresenca() -->
+      <select id="presenca-evento-sel" style="display:none"></select>
     </div>
 
     <!-- RECIBOS -->
@@ -4143,11 +4152,9 @@ async function salvarNovoEvento(){
   if(!res.ok){ toast('Erro ao criar evento','error'); return; }
   DATA.eventos.push(res.evento);
   document.getElementById('novo-evento-box').style.display='none';
-  renderPresenca();
-  // seleciona o novo evento e abre presença
-  document.getElementById('presenca-evento-sel').value = res.evento.id;
-  loadPresenca();
   toast('Evento criado!');
+  // abre direto na tela de presença do novo evento
+  await abrirPresencaEvento(res.evento.id);
 }
 
 function switchPresencaTab(tab){
@@ -4164,26 +4171,65 @@ function switchPresencaTab(tab){
 }
 
 async function renderPresenca(){
-  const sel = document.getElementById('presenca-evento-sel');
-  const evs = (DATA.eventos||[]).slice().sort((a,b)=>b.data.localeCompare(a.data)).slice(0,60);
-  const prevId = sel.value;
-  sel.innerHTML = '<option value="">— escolha um evento —</option>'
-    + evs.map(e=>`<option value="${e.id}">${e.titulo} (${fmtData(e.data).join(' ')})</option>`).join('');
-  if(prevId) sel.value = prevId;
-  // sempre recarrega do servidor (captura presenças feitas via QR)
-  if(sel.value) loadPresenca();
-  else document.getElementById('presenca-area').style.display='none';
+  // recarrega eventos do servidor para pegar todos (não apenas os do cache)
+  const evs = await api('/api/eventos');
+  DATA.eventos = Array.isArray(evs) ? evs : DATA.eventos;
+  renderPresencaHome();
+  document.getElementById('presenca-home').style.display='';
+  document.getElementById('presenca-detalhe').style.display='none';
+}
+
+function renderPresencaHome(){
+  const q = (document.getElementById('presenca-eventos-busca').value||'').toLowerCase();
+  const evs = (DATA.eventos||[]).slice().sort((a,b)=>b.data.localeCompare(a.data));
+  const filtrados = q ? evs.filter(e=>(e.titulo+e.data+e.local).toLowerCase().includes(q)) : evs;
+  const lista = document.getElementById('presenca-eventos-lista');
+  if(!filtrados.length){
+    lista.innerHTML='<div class="empty"><div class="empty-icon">📅</div><p>Nenhum evento encontrado</p></div>';
+    return;
+  }
+  lista.innerHTML = filtrados.map(e=>{
+    const [dia,mes] = fmtData(e.data);
+    const hoje = new Date().toISOString().slice(0,10);
+    const passado = e.data < hoje;
+    return `<div onclick="abrirPresencaEvento(${e.id})" style="display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer;margin-bottom:8px;transition:.15s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="text-align:center;min-width:44px;background:${passado?'rgba(155,146,150,.15)':'rgba(225,29,42,.12)'};border-radius:10px;padding:6px 8px">
+        <div style="font-size:1.1rem;font-weight:800;color:${passado?'var(--text2)':'var(--primary)'};line-height:1">${dia}</div>
+        <div style="font-size:.65rem;text-transform:uppercase;color:var(--text2);font-weight:700">${mes}</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.titulo}</div>
+        <div style="font-size:.75rem;color:var(--text2);margin-top:2px">${e.hora?e.hora+' · ':''}${e.local||''}${passado?' · Passado':' · Próximo'}</div>
+      </div>
+      <div style="color:var(--text2);font-size:1.2rem">›</div>
+    </div>`;
+  }).join('');
+}
+
+async function abrirPresencaEvento(id){
+  document.getElementById('presenca-evento-sel').value = id;
+  document.getElementById('presenca-home').style.display='none';
+  document.getElementById('presenca-detalhe').style.display='';
+  const ev = (DATA.eventos||[]).find(e=>e.id===id)||{};
+  document.getElementById('presenca-detalhe-titulo').textContent = ev.titulo||'';
+  document.getElementById('presenca-detalhe-sub').textContent = [ev.hora, ev.local].filter(Boolean).join(' · ') + ' · ' + (fmtData(ev.data||'').join(' '));
+  switchPresencaTab('marcar');
+  await loadPresenca();
+}
+
+function voltarPresencaHome(){
+  document.getElementById('presenca-home').style.display='';
+  document.getElementById('presenca-detalhe').style.display='none';
 }
 
 async function loadPresenca(){
   const id = document.getElementById('presenca-evento-sel').value;
-  if(!id){ document.getElementById('presenca-area').style.display='none'; return; }
+  if(!id){ return; }
   const res = await api('/api/eventos/'+id+'/presenca');
   presencaState = {eventoId: id, registros: {}};
   const rows = Array.isArray(res) ? res : (res.presenca||[]);
   rows.forEach(p=>{ presencaState.registros[p.membro_id]=p.presente; });
   DATA.membros.forEach(m=>{ if(presencaState.registros[m.id]===undefined) presencaState.registros[m.id]=false; });
-  document.getElementById('presenca-area').style.display='block';
   renderPresencaLista();
 }
 

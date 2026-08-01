@@ -161,7 +161,7 @@ def perfil_publico(mid):
 @app.route('/escanear')
 @login_required
 def escanear():
-    if not has_perm('p_escanear'):
+    if not (is_admin() or has_perm('p_escanear')):
         return redirect('/')
     cfg = {r.chave: r.valor for r in Config.query.all()}
     hoje = date.today().isoformat()
@@ -178,7 +178,7 @@ def escanear():
 @app.route('/api/presenca/qr', methods=['POST'])
 @login_required
 def presenca_qr():
-    if not has_perm('p_escanear'):
+    if not (is_admin() or has_perm('p_escanear')):
         return jsonify({'ok':False,'msg':'Sem permissão'}), 403
     d = request.json or {}
     membro_id = d.get('membro_id')

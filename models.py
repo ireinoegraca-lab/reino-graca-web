@@ -29,7 +29,7 @@ class Perfil(db.Model):
                 'p_agenda':self.p_agenda,'p_louvor':self.p_louvor,'p_mural':self.p_mural,
                 'p_financeiro':self.p_financeiro,'p_usuarios':self.p_usuarios,
                 'p_perfis':self.p_perfis,'pode_aprovar':self.pode_aprovar,
-                'p_escanear':self.p_escanear}
+                'p_escanear':bool(self.p_escanear)}
 
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'usuarios'
@@ -51,10 +51,14 @@ class Usuario(UserMixin, db.Model):
             return self.perfil.to_dict()
         # fallback para role legado
         full = dict(p_membros=True,p_ministerios=True,p_agenda=True,p_louvor=True,
-                    p_mural=True,p_financeiro=True,p_usuarios=True,p_perfis=True,pode_aprovar=True)
+                    p_mural=True,p_financeiro=True,p_usuarios=True,p_perfis=True,pode_aprovar=True,p_escanear=True)
+        lider = dict(p_membros=True,p_ministerios=True,p_agenda=True,p_louvor=True,
+                     p_mural=True,p_financeiro=False,p_usuarios=False,p_perfis=False,pode_aprovar=False,p_escanear=True)
         membro = dict(p_membros=False,p_ministerios=False,p_agenda=True,p_louvor=True,
-                      p_mural=True,p_financeiro=False,p_usuarios=False,p_perfis=False,pode_aprovar=False)
-        return full if self.role in ('admin','pastor') else membro
+                      p_mural=True,p_financeiro=False,p_usuarios=False,p_perfis=False,pode_aprovar=False,p_escanear=False)
+        if self.role in ('admin','pastor'): return full
+        if self.role in ('lider','secretaria'): return lider
+        return membro
 
 class Membro(db.Model):
     __tablename__ = 'membros'

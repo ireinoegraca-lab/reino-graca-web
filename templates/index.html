@@ -567,6 +567,13 @@ input,select,textarea,button{font-family:inherit}
           <div id="cfg-msg" style="font-size:.85rem;color:#22c55e;display:none">✅ Salvo com sucesso!</div>
         </div>
       </div>
+
+      <div class="card" style="max-width:520px;border-color:rgba(245,158,11,.4)">
+        <div class="card-title">💾 Backup dos Dados</div>
+        <p style="font-size:.84rem;color:var(--text2);margin:8px 0 14px">Exporta todos os dados do sistema (membros, presença, financeiro, músicas, etc.) em um arquivo JSON. Guarde este arquivo — você pode reimportar na VPS quando estiver pronta.</p>
+        <button class="btn" style="background:#f59e0b;color:#000;font-weight:700;align-self:flex-start" onclick="baixarBackup()">⬇️ Baixar Backup Completo</button>
+        <div id="backup-msg" style="font-size:.82rem;color:var(--text2);margin-top:8px;display:none"></div>
+      </div>
     </div>
 
     <!-- MEMBROS -->
@@ -3260,6 +3267,27 @@ async function salvarConfig(){
     CONFIG=Object.assign(CONFIG,d);
     const m=document.getElementById('cfg-msg');
     m.style.display='block';setTimeout(()=>m.style.display='none',3000);
+  }
+}
+
+async function baixarBackup(){
+  const msg = document.getElementById('backup-msg');
+  msg.style.display='block';
+  msg.textContent='⏳ Gerando backup, aguarde...';
+  try{
+    const res = await fetch('/api/admin/export-db');
+    if(!res.ok){ msg.textContent='❌ Erro ao gerar backup.'; return; }
+    const blob = await res.blob();
+    const cd = res.headers.get('Content-Disposition')||'';
+    const fn = (cd.match(/filename="([^"]+)"/))||['','reino-graca-backup.json'];
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download=fn[1]; a.click();
+    URL.revokeObjectURL(url);
+    msg.textContent='✅ Backup baixado com sucesso! Guarde este arquivo em local seguro.';
+    setTimeout(()=>msg.style.display='none', 6000);
+  }catch(e){
+    msg.textContent='❌ Falha na conexão.';
   }
 }
 

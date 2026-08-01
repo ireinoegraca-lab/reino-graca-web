@@ -1310,6 +1310,51 @@ def get_pix_info():
     nome  = Config.query.filter_by(chave='nome_igreja').first()
     return jsonify({'chave': chave.valor if chave else '', 'nome': nome.valor if nome else 'Igreja'})
 
+# ── BACKUP / EXPORT ───────────────────────────────────────────────
+@app.route('/api/admin/export-db')
+@login_required
+def export_db():
+    if not is_admin():
+        return jsonify({'ok':False,'msg':'Sem permissão'}), 403
+    from datetime import datetime as dt
+    data = {
+        'exported_at': dt.utcnow().isoformat(),
+        'version': '1.0',
+        'membros': [serialize_membro(m) for m in Membro.query.all()],
+        'ministerios': [{'id':c.id,'nome':c.nome,'descricao':c.descricao or '','cor':c.cor or '#e11d2a'} for c in Ministerio.query.all()],
+        'usuarios': [{'id':u.id,'nome':u.nome,'usuario':u.usuario,'role':u.role,'status':u.status,
+                      'ministerio_id':u.ministerio_id,'ultima_confirmacao':u.ultima_confirmacao or ''} for u in Usuario.query.all()],
+        'eventos': [{'id':e.id,'titulo':e.titulo,'data':e.data,'hora':e.hora or '','local':e.local or '',
+                     'tipo':e.tipo or '','descricao':e.descricao or ''} for e in Evento.query.all()],
+        'presencas': [{'id':p.id,'evento_id':p.evento_id,'membro_id':p.membro_id,'presente':p.presente} for p in Presenca.query.all()],
+        'musicas': [serialize_musica(m) for m in Musica.query.all()],
+        'setlists': [serialize_setlist(s) for s in Setlist.query.all()],
+        'financeiro': [{'id':f.id,'tipo':f.tipo,'categoria':f.categoria or '','valor':f.valor,
+                        'data':f.data,'descricao':f.descricao or '','membro_id':f.membro_id,
+                        'forma':f.forma or '','campanha_id':f.campanha_id} for f in Financeiro.query.all()],
+        'campanhas': [serialize_campanha(c) for c in Campanha.query.all()],
+        'escalas': [{'id':e.id,'titulo':e.titulo,'data':e.data,'descricao':e.descricao or '',
+                     'itens':[{'membro_id':i.membro_id,'funcao':i.funcao} for i in e.itens]} for e in Escala.query.all()],
+        'mural': [{'id':p.id,'titulo':p.titulo,'texto':p.texto or '','imagem':p.imagem or '',
+                   'ministerio_id':p.ministerio_id,'autor_id':p.autor_id,'criado_em':p.criado_em.isoformat()} for p in MuralPost.query.all()],
+        'config': {r.chave: r.valor for r in Config.query.all()},
+        'perfis': [p.to_dict() for p in Perfil.query.filter_by(builtin=False).all()],
+        'celulas': [{'id':c.id,'nome':c.nome,'descricao':c.descricao or '','lider_id':c.lider_id,
+                     'dia_semana':c.dia_semana or '','horario':c.horario or '','local':c.local or '',
+                     'membros':[m.membro_id for m in c.membros]} for c in Celula.query.all()],
+        'comunicados': [{'id':c.id,'titulo':c.titulo,'texto':c.texto,'autor_id':c.autor_id,
+                         'ministerio_id':c.ministerio_id,'criado_em':c.criado_em.isoformat()} for c in Comunicado.query.all()],
+        'pedidos_oracao': [{'id':p.id,'texto':p.texto,'nome_solicitante':p.nome_solicitante or '',
+                            'membro_id':p.membro_id,'privado':p.privado,'status':p.status,
+                            'criado_em':p.criado_em.isoformat()} for p in PedidoOracao.query.all()],
+    }
+    import json
+    from flask import Response
+    filename = f"reino-graca-backup-{dt.utcnow().strftime('%Y%m%d-%H%M')}.json"
+    return Response(json.dumps(data, ensure_ascii=False, indent=2),
+                    mimetype='application/json',
+                    headers={'Content-Disposition': f'attachment; filename="{filename}"'})
+
 init_db()
 
 if __name__ == '__main__':

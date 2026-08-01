@@ -12,6 +12,7 @@
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:radial-gradient(ellipse 80% 60% at 50% 0%,#1a060a,var(--bg) 65%)}
 .wrap{width:100%;max-width:400px}
 .church-header{text-align:center;margin-bottom:28px}
+.church-logo{width:56px;height:56px;border-radius:50%;object-fit:cover;margin:0 auto 10px;display:block;box-shadow:0 0 0 2px rgba(225,29,42,.4),0 0 20px rgba(225,29,42,.2)}
 .church-name{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--brand);font-weight:700;letter-spacing:.05em}
 .church-sub{font-size:.72rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:4px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.7)}
@@ -40,7 +41,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-he
 <body>
 <div class="wrap">
   <div class="church-header">
-    <div class="church-name">✝ {{ nome_igreja }}</div>
+    <img class="church-logo" src="/static/logo.jpeg" onerror="this.style.display='none'">
+    <div class="church-name">{{ nome_igreja }}</div>
     <div class="church-sub">Verificação de Membro</div>
   </div>
 

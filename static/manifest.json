@@ -1,0 +1,18 @@
+{
+  "name": "Reino & Graça",
+  "short_name": "R&G Igreja",
+  "description": "Sistema de gestão da Igreja Reino & Graça",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#080808",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/static/logo.jpeg",
+      "sizes": "any",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

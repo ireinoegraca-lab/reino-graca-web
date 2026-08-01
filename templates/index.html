@@ -4224,17 +4224,22 @@ function voltarPresencaHome(){
 
 async function loadPresenca(){
   const id = document.getElementById('presenca-evento-sel').value;
-  if(!id){ return; }
-  const res = await api('/api/eventos/'+id+'/presenca');
-  presencaState = {eventoId: id, registros: {}};
-  const rows = Array.isArray(res) ? res : (res.presenca||[]);
-  rows.forEach(p=>{ presencaState.registros[p.membro_id]=p.presente; });
+  if(!id){ console.warn('loadPresenca: id vazio'); return; }
+  presencaState = {eventoId: parseInt(id), registros: {}};
+  try{
+    const res = await api('/api/eventos/'+id+'/presenca');
+    const rows = Array.isArray(res) ? res : (res.presenca||[]);
+    rows.forEach(p=>{ presencaState.registros[p.membro_id] = p.presente; });
+    console.log('Presença carregada:', rows.length, 'registros para evento', id);
+  }catch(e){ console.error('Erro ao carregar presença:', e); }
   DATA.membros.forEach(m=>{ if(presencaState.registros[m.id]===undefined) presencaState.registros[m.id]=false; });
   renderPresencaLista();
 }
 
 function renderPresencaLista(){
-  const q = document.getElementById('presenca-busca').value.toLowerCase();
+  if(!presencaState || !presencaState.registros) return;
+  const buscaEl = document.getElementById('presenca-busca');
+  const q = buscaEl ? buscaEl.value.toLowerCase() : '';
   const membros = DATA.membros.filter(m=>!q||m.nome.toLowerCase().includes(q));
   const total = DATA.membros.length;
   const presentes = Object.values(presencaState.registros).filter(Boolean).length;
@@ -4266,7 +4271,7 @@ function marcarTodos(val){
 async function salvarPresenca(){
   if(!presencaState.eventoId) return;
   const registros = Object.entries(presencaState.registros).map(([mid,presente])=>({membro_id:+mid,presente}));
-  await api('/api/eventos/'+presencaState.eventoId+'/presenca', {method:'POST', body:JSON.stringify({registros})});
+  await api('/api/eventos/'+presencaState.eventoId+'/presenca', {method:'POST', body:JSON.stringify(registros)});
   toast('Presença salva!');
 }
 

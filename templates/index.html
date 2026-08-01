@@ -1790,6 +1790,16 @@ async function importarFinExcel(input){
   } else toast('❌ Erro: '+d.msg,'error');
 }
 
+async function buscarCepPerfil(v){
+  const cep=v.replace(/\D/g,'');
+  if(cep.length!==8)return;
+  try{const r=await fetch(`https://viacep.com.br/ws/${cep}/json/`);const d=await r.json();if(d.erro)return;
+    document.getElementById('mp-rua').value=d.logradouro||'';
+    document.getElementById('mp-bairro').value=d.bairro||'';
+    document.getElementById('mp-cidade').value=d.localidade||'';
+    document.getElementById('mp-estado').value=d.uf||'';
+    document.getElementById('mp-numero').focus();}catch(_){}
+}
 async function buscarCep(v){
   const cep = v.replace(/\D/g,'');
   if(cep.length!==8) return;
@@ -3590,14 +3600,43 @@ function enviarWhatsApp(){
         <input class="form-input" id="mp-email" type="email" placeholder="seu@email.com">
       </div>
     </div>
+    <div class="form-group">
+      <label class="form-label">Profissão</label>
+      <input class="form-input" id="mp-profissao" placeholder="Ex: Professor">
+    </div>
+    <div style="margin:12px 0 6px;font-size:.78rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em">Endereço</div>
     <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Profissão</label>
-        <input class="form-input" id="mp-profissao" placeholder="Ex: Professor">
+      <div class="form-group" style="flex:.4">
+        <label class="form-label">CEP</label>
+        <input class="form-input" id="mp-cep" placeholder="00000-000" maxlength="9" oninput="buscarCepPerfil(this.value)">
       </div>
-      <div class="form-group">
+      <div class="form-group" style="flex:.6">
+        <label class="form-label">Rua / Logradouro</label>
+        <input class="form-input" id="mp-rua" placeholder="Rua, Av...">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:.25">
+        <label class="form-label">Número</label>
+        <input class="form-input" id="mp-numero" placeholder="Nº">
+      </div>
+      <div class="form-group" style="flex:.35">
+        <label class="form-label">Complemento</label>
+        <input class="form-input" id="mp-complemento" placeholder="Apto...">
+      </div>
+      <div class="form-group" style="flex:.4">
         <label class="form-label">Bairro</label>
-        <input class="form-input" id="mp-bairro" placeholder="Ex: Centro">
+        <input class="form-input" id="mp-bairro" placeholder="Bairro">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:.7">
+        <label class="form-label">Cidade</label>
+        <input class="form-input" id="mp-cidade" placeholder="Cidade">
+      </div>
+      <div class="form-group" style="flex:.3">
+        <label class="form-label">UF</label>
+        <input class="form-input" id="mp-estado" placeholder="ES" maxlength="2" style="text-transform:uppercase">
       </div>
     </div>
     <div class="form-group">
@@ -3778,7 +3817,13 @@ async function abrirMeuPerfil(){
   document.getElementById('mp-tel').value = m.tel || '';
   document.getElementById('mp-email').value = m.email || '';
   document.getElementById('mp-profissao').value = m.profissao || '';
+  document.getElementById('mp-cep').value = m.cep || '';
+  document.getElementById('mp-rua').value = m.rua || '';
+  document.getElementById('mp-numero').value = m.numero || '';
+  document.getElementById('mp-complemento').value = m.complemento || '';
   document.getElementById('mp-bairro').value = m.bairro || '';
+  document.getElementById('mp-cidade').value = m.cidade || '';
+  document.getElementById('mp-estado').value = m.estado || '';
   document.getElementById('mp-obs').value = m.obs || '';
   document.getElementById('mp-nova-senha').value = '';
   document.getElementById('mp-conf-senha').value = '';
@@ -3827,7 +3872,13 @@ async function salvarMeuPerfil(){
     tel: document.getElementById('mp-tel').value.trim(),
     email: document.getElementById('mp-email').value.trim(),
     profissao: document.getElementById('mp-profissao').value.trim(),
+    cep: document.getElementById('mp-cep').value.trim(),
+    rua: document.getElementById('mp-rua').value.trim(),
+    numero: document.getElementById('mp-numero').value.trim(),
+    complemento: document.getElementById('mp-complemento').value.trim(),
     bairro: document.getElementById('mp-bairro').value.trim(),
+    cidade: document.getElementById('mp-cidade').value.trim(),
+    estado: document.getElementById('mp-estado').value.trim().toUpperCase(),
     obs: document.getElementById('mp-obs').value.trim(),
     foto: _mpFotoRemovida ? '' : (_mpFotoBase64 || undefined),
   };

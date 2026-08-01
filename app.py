@@ -235,7 +235,6 @@ def api_register():
     if Usuario.query.filter_by(usuario=usuario).first():
         return jsonify({'ok':False,'msg':'Usuário já existe. Escolha outro nome de usuário.'}), 409
     profissao = (d.get('profissao') or '').strip()
-    bairro    = (d.get('bairro')    or '').strip()
     perfil_membro = Perfil.query.filter_by(nome='Membro').first()
     hoje = date.today().isoformat()
     u = Usuario(nome=nome, usuario=usuario, role='membro', status='pendente',
@@ -244,7 +243,11 @@ def api_register():
     db.session.add(u)
     foto = (d.get('foto') or '').strip() or None
     m = Membro(nome=nome, email=email, tel=tel, nasc=nasc or None, status='Ativo',
-               profissao=profissao or None, bairro=bairro or None, foto=foto)
+               profissao=profissao or None,
+               cep=d.get('cep') or None, rua=d.get('rua') or None,
+               numero=d.get('numero') or None, complemento=d.get('complemento') or None,
+               bairro=d.get('bairro') or None, cidade=d.get('cidade') or None,
+               estado=d.get('estado') or None, foto=foto)
     db.session.add(m)
     db.session.commit()
     return jsonify({'ok':True,'pendente':True,'msg':'Cadastro enviado! Aguarde a aprovação do administrador.'})
@@ -316,12 +319,8 @@ def update_meu_perfil():
         primeiro = u.nome.split()[0]
         m = Membro.query.filter(Membro.nome.ilike(f'{primeiro}%')).first()
     if m:
-        if 'tel'       in d: m.tel       = d['tel'] or None
-        if 'email'     in d: m.email     = d['email'] or None
-        if 'profissao' in d: m.profissao = d['profissao'] or None
-        if 'bairro'    in d: m.bairro    = d['bairro'] or None
-        if 'obs'       in d: m.obs       = d['obs'] or None
-        if 'foto'      in d: m.foto      = d['foto'] or None
+        for k in ['tel','email','profissao','cep','rua','numero','complemento','bairro','cidade','estado','obs','foto']:
+            if k in d: setattr(m, k, d[k] or None)
     db.session.commit()
     return jsonify({'ok': True})
 

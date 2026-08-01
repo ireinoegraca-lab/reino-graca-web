@@ -98,14 +98,43 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
         <label>E-mail</label>
         <input id="r-email" type="email" placeholder="seu@email.com" autocomplete="email">
       </div>
+      <div class="field">
+        <label>Profissão</label>
+        <input id="r-profissao" type="text" placeholder="Ex: Professor">
+      </div>
+      <div style="margin:14px 0 6px;font-size:.75rem;font-weight:700;color:#9b9296;text-transform:uppercase;letter-spacing:.1em">Endereço</div>
       <div class="row">
-        <div class="field">
-          <label>Profissão</label>
-          <input id="r-profissao" type="text" placeholder="Ex: Professor">
+        <div class="field" style="flex:.4">
+          <label>CEP</label>
+          <input id="r-cep" type="text" placeholder="00000-000" maxlength="9" oninput="buscarCep(this.value)">
         </div>
-        <div class="field">
+        <div class="field" style="flex:.6">
+          <label>Rua / Logradouro</label>
+          <input id="r-rua" type="text" placeholder="Rua, Av...">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:.25">
+          <label>Número</label>
+          <input id="r-numero" type="text" placeholder="Nº">
+        </div>
+        <div class="field" style="flex:.35">
+          <label>Complemento</label>
+          <input id="r-complemento" type="text" placeholder="Apto, Casa...">
+        </div>
+        <div class="field" style="flex:.4">
           <label>Bairro</label>
-          <input id="r-bairro" type="text" placeholder="Ex: Centro">
+          <input id="r-bairro" type="text" placeholder="Bairro">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:.7">
+          <label>Cidade</label>
+          <input id="r-cidade" type="text" placeholder="Cidade">
+        </div>
+        <div class="field" style="flex:.3">
+          <label>UF</label>
+          <input id="r-estado" type="text" placeholder="ES" maxlength="2" style="text-transform:uppercase">
         </div>
       </div>
     </div>
@@ -150,6 +179,16 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 <script>
 let fotoBase64 = null;
 
+async function buscarCep(v){
+  const cep=v.replace(/\D/g,'');
+  if(cep.length!==8)return;
+  try{const r=await fetch(`https://viacep.com.br/ws/${cep}/json/`);const d=await r.json();if(d.erro)return;
+    document.getElementById('r-rua').value=d.logradouro||'';
+    document.getElementById('r-bairro').value=d.bairro||'';
+    document.getElementById('r-cidade').value=d.localidade||'';
+    document.getElementById('r-estado').value=d.uf||'';
+    document.getElementById('r-numero').focus();}catch(_){}
+}
 function previewFoto(input){
   const file = input.files[0];
   if(!file) return;
@@ -202,7 +241,13 @@ async function enviar(){
         tel:document.getElementById('r-tel').value.trim(),
         nasc:document.getElementById('r-nasc').value||null,
         profissao:document.getElementById('r-profissao').value.trim(),
+        cep:document.getElementById('r-cep').value.trim(),
+        rua:document.getElementById('r-rua').value.trim(),
+        numero:document.getElementById('r-numero').value.trim(),
+        complemento:document.getElementById('r-complemento').value.trim(),
         bairro:document.getElementById('r-bairro').value.trim(),
+        cidade:document.getElementById('r-cidade').value.trim(),
+        estado:document.getElementById('r-estado').value.trim().toUpperCase(),
         foto:fotoBase64||null
       })});
     const d=await r.json();

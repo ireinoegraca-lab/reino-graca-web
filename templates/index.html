@@ -919,14 +919,43 @@ input,select,textarea,button{font-family:inherit}
           <input class="form-input" id="m-email" type="email" placeholder="email@...">
         </div>
       </div>
+      <div class="form-group">
+        <label class="form-label">Profissão</label>
+        <input class="form-input" id="m-prof" placeholder="Profissão">
+      </div>
+      <div style="margin:12px 0 6px;font-size:.8rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em">Endereço</div>
       <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Profissão</label>
-          <input class="form-input" id="m-prof" placeholder="Profissão">
+        <div class="form-group" style="flex:.4">
+          <label class="form-label">CEP</label>
+          <input class="form-input" id="m-cep" placeholder="00000-000" maxlength="9" oninput="buscarCep(this.value)">
         </div>
-        <div class="form-group">
+        <div class="form-group" style="flex:.6">
+          <label class="form-label">Rua / Logradouro</label>
+          <input class="form-input" id="m-rua" placeholder="Rua, Av., Travessa...">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:.25">
+          <label class="form-label">Número</label>
+          <input class="form-input" id="m-numero" placeholder="Nº">
+        </div>
+        <div class="form-group" style="flex:.35">
+          <label class="form-label">Complemento</label>
+          <input class="form-input" id="m-complemento" placeholder="Apto, Casa...">
+        </div>
+        <div class="form-group" style="flex:.4">
           <label class="form-label">Bairro</label>
           <input class="form-input" id="m-bairro" placeholder="Bairro">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:.7">
+          <label class="form-label">Cidade</label>
+          <input class="form-input" id="m-cidade" placeholder="Cidade">
+        </div>
+        <div class="form-group" style="flex:.3">
+          <label class="form-label">UF</label>
+          <input class="form-input" id="m-estado" placeholder="ES" maxlength="2" style="text-transform:uppercase">
         </div>
       </div>
       <div class="form-group">
@@ -1686,11 +1715,17 @@ function openModalMembro(id){
     document.getElementById('m-tel').value=m.tel||'';
     document.getElementById('m-email').value=m.email||'';
     document.getElementById('m-prof').value=m.profissao||'';
+    document.getElementById('m-cep').value=m.cep||'';
+    document.getElementById('m-rua').value=m.rua||'';
+    document.getElementById('m-numero').value=m.numero||'';
+    document.getElementById('m-complemento').value=m.complemento||'';
     document.getElementById('m-bairro').value=m.bairro||'';
+    document.getElementById('m-cidade').value=m.cidade||'';
+    document.getElementById('m-estado').value=m.estado||'';
     document.getElementById('m-obs').value=m.obs||'';
     setFotoModal(m.foto||'',m.nome);
   } else {
-    ['m-nome','m-nasc','m-tel','m-email','m-prof','m-bairro','m-obs'].forEach(i=>document.getElementById(i).value='');
+    ['m-nome','m-nasc','m-tel','m-email','m-prof','m-cep','m-rua','m-numero','m-complemento','m-bairro','m-cidade','m-estado','m-obs'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('m-status').value='Ativo';
     setFotoModal('','');
   }
@@ -1755,6 +1790,21 @@ async function importarFinExcel(input){
   } else toast('❌ Erro: '+d.msg,'error');
 }
 
+async function buscarCep(v){
+  const cep = v.replace(/\D/g,'');
+  if(cep.length!==8) return;
+  try{
+    const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const d = await r.json();
+    if(d.erro) return;
+    document.getElementById('m-rua').value    = d.logradouro||'';
+    document.getElementById('m-bairro').value = d.bairro||'';
+    document.getElementById('m-cidade').value = d.localidade||'';
+    document.getElementById('m-estado').value = d.uf||'';
+    document.getElementById('m-numero').focus();
+  }catch(_){}
+}
+
 async function salvarMembro(){
   const id=document.getElementById('m-id').value;
   const nome=document.getElementById('m-nome').value.trim();
@@ -1762,7 +1812,14 @@ async function salvarMembro(){
   const fotoData=document.getElementById('m-foto-data').value;
   const body={nome,nasc:document.getElementById('m-nasc').value,status:document.getElementById('m-status').value,
     tel:document.getElementById('m-tel').value,email:document.getElementById('m-email').value,
-    profissao:document.getElementById('m-prof').value,bairro:document.getElementById('m-bairro').value,
+    profissao:document.getElementById('m-prof').value,
+    cep:document.getElementById('m-cep').value,
+    rua:document.getElementById('m-rua').value,
+    numero:document.getElementById('m-numero').value,
+    complemento:document.getElementById('m-complemento').value,
+    bairro:document.getElementById('m-bairro').value,
+    cidade:document.getElementById('m-cidade').value,
+    estado:document.getElementById('m-estado').value.toUpperCase(),
     obs:document.getElementById('m-obs').value};
   if(fotoData) body.foto=fotoData;
   const res=await api(id?`/api/membros/${id}`:'/api/membros',{method:id?'PUT':'POST',body:JSON.stringify(body)});

@@ -64,7 +64,10 @@ def serialize_usuario(u):
             'ultima_confirmacao':u.ultima_confirmacao,'precisa_confirmar':precisa_confirmar(u)}
 def serialize_membro(m):
     return {'id':m.id,'nome':m.nome,'nasc':m.nasc or '','tel':m.tel or '','email':m.email or '',
-            'profissao':m.profissao or '','status':m.status or 'Ativo','bairro':m.bairro or '',
+            'profissao':m.profissao or '','status':m.status or 'Ativo',
+            'cep':m.cep or '','rua':m.rua or '','numero':m.numero or '',
+            'complemento':m.complemento or '','bairro':m.bairro or '',
+            'cidade':m.cidade or '','estado':m.estado or '',
             'obs':m.obs or '','foto':m.foto or '','ministerio_id':m.ministerio_id,
             'ministerio_nome':m.ministerio.nome if m.ministerio else ''}
 def serialize_ministerio(c):
@@ -344,7 +347,10 @@ def add_membro():
     d = request.json
     m = Membro(nome=d['nome'],nasc=d.get('nasc'),tel=d.get('tel'),email=d.get('email'),
                profissao=d.get('profissao'),status=d.get('status','Ativo'),
-               bairro=d.get('bairro'),obs=d.get('obs'),ministerio_id=d.get('ministerio_id'))
+               cep=d.get('cep'),rua=d.get('rua'),numero=d.get('numero'),
+               complemento=d.get('complemento'),bairro=d.get('bairro'),
+               cidade=d.get('cidade'),estado=d.get('estado'),
+               obs=d.get('obs'),ministerio_id=d.get('ministerio_id'))
     db.session.add(m); db.session.commit()
     return jsonify({'ok':True,'membro':serialize_membro(m)})
 
@@ -353,7 +359,7 @@ def add_membro():
 def update_membro(mid):
     if not is_admin(): return jsonify({'ok':False}), 403
     m = Membro.query.get_or_404(mid); d = request.json
-    for k in ['nome','nasc','tel','email','profissao','status','bairro','obs','foto','ministerio_id']:
+    for k in ['nome','nasc','tel','email','profissao','status','cep','rua','numero','complemento','bairro','cidade','estado','obs','foto','ministerio_id']:
         if k in d: setattr(m, k, d[k])
     db.session.commit()
     return jsonify({'ok':True,'membro':serialize_membro(m)})
@@ -1138,6 +1144,12 @@ def migrate_columns():
         add_col('musicas','categoria',     'VARCHAR(50)')
         add_col('musicas','ministerio_id', 'INTEGER REFERENCES ministerios(id)')
         add_col('perfis','p_escanear', 'BOOLEAN DEFAULT FALSE')
+        add_col('membros','cep',         'VARCHAR(10)')
+        add_col('membros','rua',         'VARCHAR(150)')
+        add_col('membros','numero',      'VARCHAR(10)')
+        add_col('membros','complemento', 'VARCHAR(80)')
+        add_col('membros','cidade',      'VARCHAR(80)')
+        add_col('membros','estado',      'VARCHAR(2)')
         conn.close()
 
 def init_db():

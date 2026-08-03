@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Igreja">
 <link rel="manifest" href="/static/manifest.json">
-<link rel="apple-touch-icon" href="/static/logo.jpeg">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <title>Reino & Graça — Sistema</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -223,6 +223,20 @@ input,select,textarea,button{font-family:inherit}
 </style>
 </head>
 <body>
+
+<!-- BANNER INSTALAR APP -->
+<div id="pwa-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#1a060a,#0f0f0f);border-top:1px solid rgba(225,29,42,.4);padding:16px 20px;align-items:center;gap:14px;box-shadow:0 -4px 30px rgba(0,0,0,.6)">
+  <img src="/static/icon-192.png" style="width:48px;height:48px;border-radius:12px;flex-shrink:0;box-shadow:0 2px 10px rgba(225,29,42,.4)">
+  <div style="flex:1;min-width:0">
+    <div style="font-weight:700;font-size:.9rem;color:#f5f0f0;margin-bottom:2px">Instalar app da Igreja</div>
+    <div id="pwa-ios-tip" style="display:none;font-size:.75rem;color:#9b9296;line-height:1.4">Toque em <strong style="color:#f5f0f0">⬆ Compartilhar</strong> e depois <strong style="color:#f5f0f0">"Adicionar à Tela de Início"</strong></div>
+    <div id="pwa-btn-android">
+      <div style="font-size:.75rem;color:#9b9296;margin-bottom:6px">Adicione à tela inicial com a logo da igreja</div>
+      <button onclick="instalarPWA()" style="background:#e11d2a;color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit">⬇ Instalar app</button>
+    </div>
+  </div>
+  <button onclick="fecharBannerPWA(false)" style="background:none;border:none;color:#9b9296;font-size:1.4rem;cursor:pointer;padding:4px;flex-shrink:0;line-height:1">✕</button>
+</div>
 
 <!-- LOGIN -->
 <div id="login-screen">
@@ -1489,6 +1503,7 @@ async function doRegister(){
   document.getElementById('tb-user').textContent=USER.nome.split(' ')[0];
   document.getElementById('tb-avatar').textContent=iniciais(USER.nome);
   applyRole();await loadAll();navTo('dashboard');
+  setTimeout(mostrarBannerPWA, 2000);
 }
 async function doLogin(){
   const usuario=document.getElementById('l-user').value.trim();
@@ -1506,6 +1521,7 @@ async function doLogin(){
   navTo('dashboard');
   verificarPendentesAdmin();
   if(data.user.precisa_confirmar) mostrarModalConfirmacao();
+  setTimeout(mostrarBannerPWA, 2000);
 }
 
 async function doLogout(){
@@ -3305,6 +3321,40 @@ async function renderCarteirinha(){
 // ── PWA ───────────────────────────────────────────────────────────
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/static/sw.js').catch(()=>{});
+}
+
+// Prompt de instalação (Android: automático | iOS: instrução)
+let _pwaPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _pwaPrompt = e;
+});
+
+function mostrarBannerPWA(){
+  if(localStorage.getItem('pwa_instalado')) return;
+  if(window.matchMedia('(display-mode: standalone)').matches) return;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const el = document.getElementById('pwa-banner');
+  if(!el) return;
+  if(isIOS){
+    document.getElementById('pwa-btn-android').style.display='none';
+    document.getElementById('pwa-ios-tip').style.display='block';
+  }
+  el.style.display='flex';
+}
+
+function instalarPWA(){
+  if(_pwaPrompt){
+    _pwaPrompt.prompt();
+    _pwaPrompt.userChoice.then(r=>{
+      if(r.outcome==='accepted') fecharBannerPWA(true);
+    });
+  }
+}
+
+function fecharBannerPWA(instalou){
+  document.getElementById('pwa-banner').style.display='none';
+  if(instalou) localStorage.setItem('pwa_instalado','1');
 }
 
 // ── CONFIGURAÇÕES ─────────────────────────────────────────────────

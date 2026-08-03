@@ -1,4 +1,4 @@
-const CACHE = 'igreja-v8';
+const CACHE = 'igreja-v9';
 const ASSETS = ['/', '/static/logo.jpeg'];
 
 self.addEventListener('install', e => {
